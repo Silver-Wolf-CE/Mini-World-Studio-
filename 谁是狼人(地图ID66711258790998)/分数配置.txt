@@ -1,0 +1,156 @@
+-- 积分配置
+local ScoreConfig =
+{
+    KillCriminal = 500,             -- 击杀匪徒积分
+    KillGood = 150,                 -- 匪徒击杀积分
+    GoodSurvivceScore = 7,          -- 好人生存积分
+    CriminalSurvivceScore = 0,      -- 匪徒生存积分
+    SavePeopleScore = 100,          -- 拯救平民积分
+    WinMagnification = 1.5,         -- 胜利积分倍率
+    BaseCriminalScore = 300,        -- 匪徒基础积分
+    BasePoliceScore = 300,          -- 警察基础积分
+    BasePeopleScore = 300,          -- 平民基础积分
+}
+
+return ScoreConfig
+
+-- 积分折算
+RankConfig.BaseScore = {
+    Coin = 1,                          -- 每个金币增加1分
+    KillOfCriminal = 1,                -- 狼人击杀平民增加1分
+    KillOfPoliceOrGood = 3,            -- 警察或平民击杀狼人增加3分
+    Win = 1,                           -- 一次胜利增加1分
+}
+
+return RankConfig
+
+
+-- 职业相关配置
+local ProfessionConfig =
+{
+    [1] = {
+        Name = "平民",
+        HP = 1,
+        Movespeed = 1,
+        JumpHeight = 1.2,
+    },
+    [2] = {
+        Name = "警察",
+        HP = 1,
+        Movespeed = 1,
+        JumpHeight = 1.2,
+    },
+    [3] = {
+        Name = "杀手",
+        HP = 1,
+        Movespeed = 1.05,
+        JumpHeight = 1.2,
+    },
+}
+
+return ProfessionConfig
+
+
+-- 技能配置表
+
+--需要策划配置
+    --ID:技能ID,需要同时配置表得key值
+    --Name：技能名称
+    --RefBuff：引用Buff
+    --ScriptName：脚本名称
+    --Duration：持续时间
+    --CD：冷却时间
+    --Range：技能范围
+    --UseLimit：使用次数限制
+    --ExtraGold：额外金币
+    --Param1：扩展参数(多义参数,不同场景下可以代表不同意思)
+    --Info：技能描述
+    --UnlockLevel：解锁等级（商店统一为0）
+    --Price:金币解锁（成长统一为0）
+    
+--无需策划配置
+    --GoodID：商品商店ID，根据开发者商店生成得ID值进行配置
+    --GetType：技能获取途径（1 商店；2 成长）
+    --Pos：显示在商店中得位置，pos等于1是切换不同职业后默认显示的第一个.其他都默认用0
+    --Career：职业（1 平民；2 警察 ；3 杀手）
+    --IsDevelop:是否开发完成，决定是否使用
+    --Belong：技能归属（1 平民；2 警察 ；3 杀手；4 全部职业）
+    --SkillType：技能类型（1 主动；2被动...）MD.Const.SkillType查看
+    --EquipState：技能状态 （0：未解锁 1：装备中；2：未装备）
+    --Icon：技能图片（配置在项目Asset中）
+    --ClonePos：技能克隆得位置，业务使用
+    --IsServer: 技能处理方式 (true:在服务器处理； false:在客户端处理)
+
+--id不能随便改，涉及到很多ui的读取，以及一些固定的技能id设置（CAbilityUI：SetSameSkillUnlock）
+local SkillConfig={
+--平民成长,
+    [11101]={ID=11101,GoodID=0,GetType=2,Pos=1,Career=1, IsUse = true, IsServer = false, IsDevelop=true,EngName="Disguise ",Name="伪装",Belong=1,SkillType=1,RefBuff="20005,20201,20301,20401",ScriptName="Skill_Camouflage",Duration=10.0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily transform into a scene decoration. During this period, movement is not possible. ",Info="短暂时间内变身成场景内装饰物，变身期间无法移动。",UnlockLevel=1,Price=0,Icon="Assets/UI/shop/civilianSkill/11101",ClonePos="civilian"},
+    [11102]={ID=11102,GoodID=0,GetType=2,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=true,EngName="Greed ",Name="贪婪",Belong=1,SkillType=2,RefBuff="",ScriptName="Skill_Greedy",Duration=0,CD=10.0,Range=0,UseLimit=0,ExtraGold=1,Param1=10,EngInfo="Earn 1 Gold every 10s of survival (not counted towards the limit). ",Info="每存活10秒+1金币，不计入当局可拾取金币上限。游戏结束时额外增加。",UnlockLevel=5,Price=0,Icon="Assets/UI/shop/civilianSkill/11102",ClonePos="civilian"},
+    [11103]={ID=11103,GoodID=0,GetType=2,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Vigilance ",Name="警戒",Belong=1,SkillType=1,RefBuff="20001",ScriptName="Skill_Camouflage",Duration=3.0,CD=60.0,Range=5.0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="After using the skill, the Movement Speed is temporarily increased if there is a Werewolf nearby. ",Info="使用技能后，如果周围有狼人则暂时增加移动速度。",UnlockLevel=11,Price=0,Icon="Assets/UI/shop/civilianSkill/11103",ClonePos="civilian"},
+    [11104]={ID=11104,GoodID=0,GetType=2,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=true,EngName="Survivor ",Name="幸存者",Belong=1,SkillType=2,RefBuff="",ScriptName="Skill_Survivor",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=10,Param1=0,EngInfo="Receive an extra 10 Gold if you survive when the game concludes (not counted towards the limit). ",Info="活到最后结算时额外获得10金币，不计入当局可拾取金币上限。",UnlockLevel=18,Price=0,Icon="Assets/UI/shop/civilianSkill/11104",ClonePos="civilian"},
+    [11105]={ID=11105,GoodID=0,GetType=2,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Veteran ",Name="退伍兵",Belong=1,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Upon picking up a pistol, gain all the passive skills of Police Officers. ",Info="拾取手枪后获得警察的所有被动技能（自己已经获得的被动技能）",UnlockLevel=26,Price=0,Icon="Assets/UI/shop/civilianSkill/11105",ClonePos="civilian"},
+    [11106]={ID=11106,GoodID=530040,GetType=2,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=true, EngName="Backtracking ",Name="时间回溯",Belong=1,SkillType=1,RefBuff="",ScriptName="Skill_Backtracking",Duration=0,CD=20.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="携带该技能时，玩家可回到4s前的位置。",UnlockLevel=10,Price=1000,Icon="Assets/UI/shop/civilianSkill/11106",ClonePos="civilian"},
+    [11107]={ID=11107,GoodID=530041,GetType=2,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=true, EngName="Fate potion ",Name="命运药水",Belong=1,SkillType=1,RefBuff="",ScriptName="Skill_FatePotion",Duration=0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="1.获得缩小药水:自身缩小10s，获得加速buf，跳跃高度增加，攻击范围缩小，模型缩小，不易被攻击。2.获得变大药水:自身增大10s，获得跳跃buff。",UnlockLevel=15,Price=1000,Icon="Assets/UI/shop/civilianSkill/11107",ClonePos="civilian"},
+    --平民商店,
+    [11201]={ID=11201,GoodID=530015,GetType=1,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="The Startled ",Name="惊弓之鸟",Belong=1,SkillType=2,RefBuff="20001",ScriptName="Skill_Camouflage",Duration=3.0,CD=0,Range=5.0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Briefly increase your Movement Speed when a nearby good guy dies. This bonus cannot stack. ",Info="周围有好人死亡时，短暂时间内增加移动速度，重复触发会重置时间，不会叠加加速效果。此技能的加速和警戒技能的加速视为同一种，重复触发只会重置持续时长。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/civilianSkill/11201",ClonePos="civilian"},
+    [11202]={ID=11202,GoodID=530016,GetType=1,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Self-Rescue ",Name="自救",Belong=1,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=-5.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Reduce the stun duration when triggering traps. ",Info="减少踩到陷阱时的眩晕时间。",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/civilianSkill/11202",ClonePos="civilian"},
+    [11203]={ID=11203,GoodID=530017,GetType=1,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Enhanced Disguise ",Name="强化伪装",Belong=1,SkillType=2,RefBuff="20301",ScriptName="Skill_Camouflage",Duration=20.0,CD=60.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Extend the duration of disguise. During disguise, you can move but cannot use skills or weapons. ",Info="伪装时间增加，且伪装期间可以移动，不可以使用技能或武器。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/civilianSkill/11203",ClonePos="civilian"},
+    --通用
+    [11301]={ID=11301,GoodID=530018,GetType=1,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Coin Crit ",Name="金币暴击",Belong=1,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=1,Param1=0,EngInfo="Chance for double coins when picking up gold coins. ",Info="拾取金币时有概率获得双倍金币",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11301",ClonePos="civilian"},
+    [11302]={ID=11302,GoodID=530019,GetType=1,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Collectomania ",Name="收集癖",Belong=1,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=25,Param1=0,EngInfo="When equipped with this skill, the upper limit of Gold you can obtain during the game increases. ",Info="单局拾取金币上限增加25个",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11302",ClonePos="civilian"},
+    [11303]={ID=11303,GoodID=530020,GetType=1,Pos=0,Career=1, IsUse = true, IsServer = false, IsDevelop=false,EngName="Enhanced Jump ",Name="强化跳跃",Belong=1,SkillType=2,RefBuff="20201",ScriptName="Skill_Camouflage",Duration=180.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="When equipped with this skill, you can jump higher. ",Info="增加跳跃高度",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11303",ClonePos="civilian"},
+    
+--警察成长,
+    [12100]={ID=12100,GoodID=0,GetType=2,Pos=1,Career=2, IsUse = true, IsServer = false, IsDevelop=true,EngName="Disguise ",Name="伪装",Belong=2,SkillType=1,RefBuff="20005,20201,20301,20401",ScriptName="Skill_Camouflage",Duration=10.0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily transform into a scene decoration. During this period, movement is not possible. ",Info="短暂时间内变身成场景内装饰物，变身期间无法移动。",UnlockLevel=1,Price=0,Icon="Assets/UI/shop/civilianSkill/11101",ClonePos="police"},
+    [12101]={ID=12101,GoodID=0,GetType=2,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=true,EngName="Sprint ",Name="冲刺",Belong=2,SkillType=1,RefBuff="20001",ScriptName="Skill_Sprint",Duration=3.0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Briefly increase your Movement Speed. ",Info="使用技能后，短暂时间内增加自己的移动速度。",UnlockLevel=2,Price=0,Icon="Assets/UI/shop/policeSkill/12101",ClonePos="police"},
+    [12102]={ID=12102,GoodID=0,GetType=2,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Unlimited Firepower ",Name="无限火力",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Your ammunition becomes limitless and requires no reloading. ",Info="携带技能时，警察武器弹夹变为无限状态，且不需要更换弹夹。",UnlockLevel=7,Price=0,Icon="Assets/UI/shop/policeSkill/12102",ClonePos="police"},
+    [12103]={ID=12103,GoodID=0,GetType=2,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Emergency Call ",Name="紧急呼叫",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=5.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Upon the initial Commoner fall, Police Officers receive an on-screen prompt and a brief display featuring the outline of the deceased Commoner's body. ",Info="首位平民死亡时，警察玩家屏幕出现提示，并在短暂时间内显示死亡平民尸体描边",UnlockLevel=13,Price=0,Icon="Assets/UI/shop/policeSkill/12103",ClonePos="police"},
+    [12104]={ID=12104,GoodID=0,GetType=2,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Valor's Reward ",Name="英勇奖赏",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=3,Param1=0,EngInfo="At the end of the game, receive 3 Gold for each surviving Commoner (not counted towards the limit). ",Info="对局结束时每有一个存活平民+3金币，不计入当局可拾取金币上限",UnlockLevel=21,Price=0,Icon="Assets/UI/shop/policeSkill/12104",ClonePos="police"},
+    --[12105]={ID=12105,GoodID=0,GetType=2,Pos=0,Career=2,IsDevelop=false,EngName="Interrogation ",Name="审讯",Belong=3,SkillType=1,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=30.0,Range=2.0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Inspect a random nearby player's role and show it to yourself only. ",Info="检查附近随机一个未被审讯过的玩家的身份，仅自己可见。",UnlockLevel=28,Price=0,Icon="Assets/UI/shop/policeSkill/12105",ClonePos="police"},
+    [12106]={ID=12106,GoodID=530040,GetType=2,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=true, EngName="Backtracking ",Name="时间回溯",Belong=2,SkillType=1,RefBuff="",ScriptName="Skill_Backtracking",Duration=0,CD=20.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="携带该技能时，玩家可回到4s前的位置。",UnlockLevel=10,Price=1000,Icon="Assets/UI/shop/policeSkill/12106",ClonePos="police"},
+    [12107]={ID=12107,GoodID=530041,GetType=2,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=true, EngName="Fate potion ",Name="命运药水",Belong=2,SkillType=1,RefBuff="20001, 20201",ScriptName="Skill_FatePotion",Duration=0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="1.获得缩小药水:自身缩小10s，获得加速buf，跳跃高度增加，攻击范围缩小，模型缩小，不易被攻击。2.获得变大药水:自身增大10s，获得跳跃buff。",UnlockLevel=15,Price=1000,Icon="Assets/UI/shop/policeSkill/12107",ClonePos="police"},
+
+-- --警察商店,
+    [12201]={ID=12201,GoodID=530021,GetType=1,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Stun Gun ",Name="电击枪",Belong=2,SkillType=1,RefBuff="20401,20402",ScriptName="Skill_Camouflage",Duration=0,CD=60.0,Range=5.0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily stun the player closest to you. ",Info="眩晕离自己最近的玩家2s。",UnlockLevel=0,Price=3000,Icon="Assets/UI/shop/policeSkill/12201",ClonePos="police"},
+    [12202]={ID=12202,GoodID=530022,GetType=1,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Bounty ",Name="悬赏",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=10,Param1=0,EngInfo="Receive an extra 10 Gold for killing a Werewolf (not counted towards the limit). ",Info="击杀狼人额外获得10金币，不计入当局可拾取金币上限。",UnlockLevel=0,Price=500,Icon="Assets/UI/shop/policeSkill/12202",ClonePos="police"},
+    [12203]={ID=12203,GoodID=530023,GetType=1,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Rapid Fire ",Name="速射",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="When equipped with this skill, reduce the cooldown of firearm shots. ",Info="增加警察武器射速。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/policeSkill/12203",ClonePos="police"},
+    --通用
+    [12301]={ID=12301,GoodID=530018,GetType=1,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Coin Crit ",Name="金币暴击",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=1,Param1=0,EngInfo="Chance for double coins when picking up gold coins. ",Info="拾取金币时有概率获得双倍金币",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11301",ClonePos="police"},
+    [12302]={ID=12302,GoodID=530019,GetType=1,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Collectomania ",Name="收集癖",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=25,Param1=0,EngInfo="When equipped with this skill, the upper limit of Gold you can obtain during the game increases. ",Info="单局拾取金币上限增加25个",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11302",ClonePos="police"},
+    [12303]={ID=12303,GoodID=530020,GetType=1,Pos=0,Career=2, IsUse = true, IsServer = false, IsDevelop=false,EngName="Enhanced Jump ",Name="强化跳跃",Belong=2,SkillType=2,RefBuff="20201",ScriptName="Skill_Camouflage",Duration=180.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="When equipped with this skill, you can jump higher. ",Info="增加跳跃高度",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11303",ClonePos="police"},
+     
+-- --杀手成长,
+    [13100]={ID=13100,GoodID=0,GetType=2,Pos=1,Career=3, IsUse = true, IsServer = false, IsDevelop=true,EngName="Disguise ",Name="伪装",Belong=3,SkillType=1,RefBuff="20005,20201,20301,20401",ScriptName="Skill_Camouflage",Duration=10.0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily transform into a scene decoration. During this period, movement is not possible. ",Info="短暂时间内变身成场景内装饰物，变身期间无法移动",UnlockLevel=1,Price=0,Icon="Assets/UI/shop/civilianSkill/11101",ClonePos="killer"},
+    [13101]={ID=13101,GoodID=0,GetType=2,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=true,EngName="Throwing Knife ",Name="飞刀",Belong=3,SkillType=1,RefBuff="",ScriptName="Skill_Throw",Duration=0,CD=15.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Hurl knives remotely (with cooldown). ",Info="远程扔出飞刀。",UnlockLevel=3,Price=0,Icon="Assets/UI/shop/killerSkill/13101",ClonePos="killer"},
+    [13102]={ID=13102,GoodID=0,GetType=2,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Trap ",Name="陷阱",Belong=3,SkillType=1,RefBuff="20401,20402",ScriptName="Skill_Camouflage",Duration=10.0,CD=3.0,Range=1.0,UseLimit=2,ExtraGold=0,Param1=0,EngInfo="Place a trap only visible to yourself. When stepped on by a Commoner, it causes temporary stun. ",Info="放一个自己可见的陷阱，其他玩家踩到会受到眩晕效果。",UnlockLevel=9,Price=0,Icon="Assets/UI/shop/killerSkill/13102",ClonePos="killer"},
+    [13103]={ID=13103,GoodID=0,GetType=2,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Frenzy ",Name="狂暴",Belong=3,SkillType=2,RefBuff="20003",ScriptName="Skill_Camouflage",Duration=20.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Expose your role and gain a speed boost until the game ends. ",Info="对局结束前20s，暴露自己身份并获得加速效果，狂暴状态下，拥有透视效果。",UnlockLevel=15,Price=0,Icon="Assets/UI/shop/killerSkill/13103",ClonePos="killer"},
+    [13104]={ID=13104,GoodID=0,GetType=2,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Enhanced Trap ",Name="强化陷阱",Belong=3,SkillType=2,RefBuff="20401,20402",ScriptName="Skill_Camouflage",Duration=10.0,CD=3.0,Range=1.0,UseLimit=3,ExtraGold=0,Param1=0,EngInfo="When equipped with a trap skill, the number of available traps is increased. ",Info="陷阱技能使用上限增加1个。",UnlockLevel=24,Price=0,Icon="Assets/UI/shop/killerSkill/13104",ClonePos="killer"},
+    --[13105]={ID=13105,GoodID=0,GetType=2,Pos=0,Career=3,IsDevelop=false,EngName="Blade Glint ",Name="刀光",Belong=2,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Execute a melee attack in a wider area (with cooldown). ",Info="小范围增加近战武器攻击距离。",UnlockLevel=30,Price=0,Icon="Assets/UI/shop/killerSkill/13105",ClonePos="killer"},
+    [13106]={ID=13106,GoodID=530040,GetType=2,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=true, EngName="Backtracking ",Name="时间回溯",Belong=3,SkillType=1,RefBuff="",ScriptName="Skill_Backtracking",Duration=0,CD=20.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="携带该技能时，玩家可回到4s前的位置。",UnlockLevel=10,Price=1000,Icon="Assets/UI/shop/killerSkill/13106",ClonePos="killer"},
+    [13107]={ID=13107,GoodID=530041,GetType=2,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=true, EngName="Fate potion ",Name="命运药水",Belong=3,SkillType=1,RefBuff="20001, 20201",ScriptName="Skill_FatePotion",Duration=0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="1.获得缩小药水:自身缩小10s，获得加速buf，跳跃高度增加，攻击范围缩小，模型缩小，不易被攻击。2.获得变大药水:自身增大10s，获得跳跃buff。",UnlockLevel=15,Price=1000,Icon="Assets/UI/shop/killerSkill/13107",ClonePos="killer"},
+
+--杀手商店,
+    [13201]={ID=13201,GoodID=530024,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Perspective ",Name="透视",Belong=3,SkillType=1,RefBuff="",ScriptName="Skill_Throw",Duration=5.0,CD=60.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily able to see the outlines of all the other players. ",Info="使用技能时，使用者可以在短暂时间内看到全场所有其他玩家的红色描边，描边可以穿透障碍物。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/killerSkill/13201",ClonePos="killer"},
+    [13202]={ID=13202,GoodID=530025,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Misdirection ",Name="误导",Belong=3,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Display a gun when a knife is taken out. The disguise is lifted after an attack. ",Info="携带该技能时，拿出武器时武器会伪装成守卫者武器，在进行攻击/使用技能操作后会还原成破坏者武器。伪装的手枪皮肤使用玩家当前使用的皮肤。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/killerSkill/13202",ClonePos="killer"},
+    [13203]={ID=13203,GoodID=530026,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Invisibility ",Name="隐身",Belong=3,SkillType=1,RefBuff="20101,20102",ScriptName="Skill_Camouflage",Duration=5.0,CD=45.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Use it to become invisible for a short duration. ",Info="使用后进入短暂的隐身状态。",UnlockLevel=0,Price=3000,Icon="Assets/UI/shop/killerSkill/13203",ClonePos="killer"},
+    [13204]={ID=13204,GoodID=530027,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Deadly Trap ",Name="致命陷阱",Belong=3,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="If stepped by a good guy, there is a chance that the trap will instantly kill the good guy. ",Info="陷阱命中后受困玩家有一定概率直接死亡。",UnlockLevel=0,Price=3000,Icon="Assets/UI/shop/killerSkill/13204",ClonePos="killer"},
+    [13205]={ID=13205,GoodID=530028,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=true,EngName="Enhanced Throwing Knife ",Name="强化飞刀",Belong=3,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=10.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Reduce the cooldown of Throwing Knife. ",Info="飞刀冷却时间降低。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/killerSkill/13205",ClonePos="killer"},
+    [13206]={ID=13206,GoodID=530029,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Bloodlust ",Name="嗜血",Belong=3,SkillType=2,RefBuff="20001",ScriptName="Skill_Camouflage",Duration=1.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily increase Movement Speed after a successful kill. This bonus cannot stack. ",Info="击杀成功后获得短暂的加速效果。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/killerSkill/13206",ClonePos="killer"},
+    [13207]={ID=13207,GoodID=530030,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Escape ",Name="脱身",Belong=3,SkillType=2,RefBuff="20101,20102",ScriptName="Skill_Camouflage",Duration=1.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="Temporarily become invisible after a successful kill. ",Info="击杀成功后一定时间内进入隐身状态。。",UnlockLevel=0,Price=2000,Icon="Assets/UI/shop/killerSkill/13207",ClonePos="killer"},
+    [13208]={ID=13208,GoodID=530031,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Pursuit ",Name="追击",Belong=3,SkillType=2,RefBuff="20002",ScriptName="Skill_Camouflage",Duration=180.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="If equipped with this skill, gain a 10% Movement Speed boost when taking out a weapon. ",Info="携带该技能时，在拿出武器时增加少许的移动速度。",UnlockLevel=0,Price=500,Icon="Assets/UI/shop/killerSkill/13208",ClonePos="killer"},
+    [13209]={ID=13209,GoodID=530032,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName=" ",Name="静默杀手",Belong=3,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="携带该技能时，玩家可无声击杀目标。",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/killerSkill/13209",ClonePos="killer"},
+    
+    -- --通用商店
+    [13311]={ID=13311,GoodID=530018,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Coin Crit ",Name="金币暴击",Belong=3,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=1,Param1=0,EngInfo="Chance for double coins when picking up gold coins. ",Info="拾取金币时有概率获得双倍金币",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11301",ClonePos="killer"},
+    [13312]={ID=13312,GoodID=530019,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Collectomania ",Name="收集癖",Belong=3,SkillType=2,RefBuff="",ScriptName="Skill_Camouflage",Duration=0,CD=0,Range=0,UseLimit=0,ExtraGold=25,Param1=0,EngInfo="When equipped with this skill, the upper limit of Gold you can obtain during the game increases. ",Info="单局拾取金币上限增加25个",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11302",ClonePos="killer"},
+    [13313]={ID=13313,GoodID=530020,GetType=1,Pos=0,Career=3, IsUse = true, IsServer = false, IsDevelop=false,EngName="Enhanced Jump ",Name="强化跳跃",Belong=3,SkillType=2,RefBuff="20201",ScriptName="Skill_Camouflage",Duration=180.0,CD=0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo="When equipped with this skill, you can jump higher. ",Info="增加跳跃高度",UnlockLevel=0,Price=1000,Icon="Assets/UI/shop/commonSkill/11303",ClonePos="killer"},
+
+    [80001]={ID=80001,GoodID=0,GetType=1,Pos=0,Career=1, IsUse = false, IsServer = false, IsDevelop=false, EngName="Reduce potion ",Name="缩小药水",Belong=1,SkillType=1,RefBuff="20007,20202,20801",ScriptName="Skill_FatePotion",Duration=0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="获得缩小药水:自身缩小10s，获得加速buf，跳跃高度增加，攻击范围缩小，模型缩小，不易被攻击。",UnlockLevel=10,Price=1000,Icon="Assets/UI/shop/killerSkill/13209",ClonePos="civilian"},
+    [80002]={ID=80002,GoodID=0,GetType=1,Pos=0,Career=1, IsUse = false, IsServer = false, IsDevelop=false, EngName="Enlarge potion ",Name="变大药水",Belong=1,SkillType=1,RefBuff="20008,20203,20802",ScriptName="Skill_FatePotion",Duration=0,CD=30.0,Range=0,UseLimit=0,ExtraGold=0,Param1=0,EngInfo=" ",Info="获得变大药水:自身增大10s，获得跳跃buff。",UnlockLevel=15,Price=1000,Icon="Assets/UI/shop/killerSkill/13209",ClonePos="civilian"},
+}
+
+    
+return SkillConfig
+            
+            
+
