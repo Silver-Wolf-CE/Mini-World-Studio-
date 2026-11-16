@@ -1,0 +1,930 @@
+local MainStorage           = game:GetService("MainStorage")
+local WorkSpace             = game:GetService("WorkSpace")
+local rs                    = game:GetService("RunService")
+local ContextActionService  = game:GetService("ContextActionService")
+local LocalPlayer           = game:GetService("Players").LocalPlayer
+local UserInputService      = game:GetService("UserInputService")
+local Player 		        = require(MainStorage.Scripts.Player)
+local CONST                 = require(MainStorage.Scripts.CONST)
+local BaseBlaster_Camera    = require(MainStorage.Scripts.Class)()
+local ConfigManager         = require(MainStorage.Scripts.Manager.ConfigManager)
+local BulletEffectFloder    = MainStorage.Asset.Prefabs.Bullet
+local ScopeFolder           = MainStorage.Asset.Prefabs.Scope
+local GlobalEventManager    = require(MainStorage.Scripts.Manager.GlobalEventManager)
+local SoundManager          = require(MainStorage.Scripts.Manager.SoundManager)
+local BaseFireShake         = require(MainStorage.Scripts.Model.BaseFireShake)
+local CameraRecoil          = require(MainStorage.Scripts.Model.CameraRecoil)
+-- local FOV                   = require(MainStorage.Scripts.Model.FOV)
+local Recoil                = require(MainStorage.Scripts.Model.Recoil)
+local BlasterEnum           = EnumHelper.BlasterEnum
+local SaveDBEnum            = EnumHelper.SaveDBEnum
+local BodyEnum              = EnumHelper.BodyEnum
+local BlasterStateEnum      = BlasterEnum.BlasterStateEnum
+local BattleService         = require(MainStorage.Scripts.Service.ServerHandler.BattleService)
+
+local RUN_FORWARD_DOT_THRESHOLD = 0.8660254
+local RUN_POSE_LERP_SPEED = 8
+local RUN_RECOVER_LERP_SPEED = 10
+local AimAssistManager = nil
+
+local BlasterStateAnimEnum =
+{
+    [BlasterStateEnum.Idle] = "Idle",
+    [BlasterStateEnum.Reloading] = "reload",
+    [BlasterStateEnum.Switching] = "equip",
+    -- [BlasterStateEnum.BoltAction] = "switch",
+}
+function BaseBlaster_Camera:ctor()
+    self.firePool = {}
+    self.ScopeFolder = ScopeFolder
+end
+
+function BaseBlaster_Camera:Init(blasterId , blasterModelTrans , item , weaponIndex)
+    local blasterConfig = ConfigManager.BlasterConfig:GetBlasterConfigById(blasterId)
+    if not blasterConfig then
+        return
+    end
+    local blasterParamConfig = ConfigManager.BlasterParamConfig:GetBlasterParamConfigById(blasterConfig.blasterParamId)
+    if not blasterParamConfig then
+        return
+    end
+    local bulletEffectConfig = ConfigManager.BulletEffectConfig:GetBulletEffectConfigById(blasterConfig.bulletId)
+    if not bulletEffectConfig then
+        return
+    end
+    self.weaponIndex = weaponIndex
+    self.item = item
+    self.blasterParamId = blasterConfig.blasterParamId
+    self.camera = WorkSpace.CurrentCamera
+    --子弹管理器
+    self.bulletsManager = require(MainStorage.Scripts.Manager.BulletsManager)
+    -- BindAttachment.BoneName
+    local BlasterModel       = blasterModelTrans:FindFirstChild("BlasterModel")
+    local ShootAttachment    = BlasterModel.ShootAttachment
+    ShootAttachment.BoneName = blasterConfig.Spine
+    ShootAttachment.LocalPosition = Vector3.zero
+    ShootAttachment.LocalEuler = Vector3.zero
+
+    --枪的后坐力动画参数
+    self.initPos    = Vector3.new(blasterConfig.initPos[1] , blasterConfig.initPos[2] , blasterConfig.initPos[3])
+    self.initEuler  = Vector3.new(blasterConfig.initEuler[1] , blasterConfig.initEuler[2] , blasterConfig.initEuler[3])
+    -- self.maxPos     = Vector3.new(blasterConfig.maxPos[1] , blasterConfig.maxPos[2] , blasterConfig.maxPos[3])
+    -- self.maxEuler   = Vector3.new(blasterConfig.maxEuler[1] , blasterConfig.maxEuler[2] , blasterConfig.maxEuler[3])
+    if blasterParamConfig.canAiming then
+        self.aimPos   = Vector3.new(blasterConfig.aimPos[1] , blasterConfig.aimPos[2] , blasterConfig.aimPos[3])
+        self.aimEuler = Vector3.new(blasterConfig.aimEuler[1] , blasterConfig.aimEuler[2] , blasterConfig.aimEuler[3])
+    end
+
+    if blasterConfig.runPos and blasterConfig.runEuler then
+        self.runPos    = Vector3.new(blasterConfig.runPos[1] , blasterConfig.runPos[2] , blasterConfig.runPos[3])
+        self.runEuler  = Vector3.new(blasterConfig.runEuler[1] , blasterConfig.runEuler[2] , blasterConfig.runEuler[3])
+    end
+    BlasterModel.LocalPosition = self.initPos
+    BlasterModel.LocalEuler = self.initEuler
+    --每开一枪 产生的力
+    self.RecoilConst = blasterParamConfig.recoil
+    self.RecoilMax = blasterParamConfig.maxRecoil
+    -- recoilRadius / weightRadius 已由 Recoil:ApplyRecoil 取代
+
+    self.curRecoil = 0
+    self.isBackDone = true
+
+    self.fireShake = BaseFireShake.New()
+    self.fireShake:Init(blasterParamConfig.fireShake)
+    self.cameraRecoil = CameraRecoil.New()
+    self.cameraRecoil:Init(blasterParamConfig.fireShake)
+    -- self.fov = FOV.New()
+    -- self.fov:Init()
+    self.recoil = Recoil.New()
+    self.recoil:Init({
+        verticalPerShot      = blasterParamConfig.verticalPerShot,
+        verticalAccel        = blasterParamConfig.verticalAccel,
+        verticalMax          = blasterParamConfig.verticalMax,
+        recoveryDelay        = blasterParamConfig.recoveryDelay,
+        recoverySpeed        = blasterParamConfig.recoverySpeed,
+        horizontalPattern    = blasterParamConfig.horizontalPattern,
+        horizontalStrength   = blasterParamConfig.horizontalStrength,
+        horizontalRandomness = blasterParamConfig.horizontalRandomness,
+        spreadBase           = blasterParamConfig.spreadBase,
+        spreadPerShot        = blasterParamConfig.spreadPerShot,
+        spreadMax            = blasterParamConfig.spreadMax,
+        spreadRecovery       = blasterParamConfig.spreadRecovery,
+    })
+
+    --枪口模型  用来发射子弹的启示坐标点
+    self.StartPosCube = ShootAttachment:FindFirstChild("Cube")
+    self.blasterModelTrans   = blasterModelTrans
+    self.blasterModel        = BlasterModel              --枪的模型
+    self.blasterAnimations   = BlasterModel.Animator     --枪的动画
+    self.shootAttachment     = ShootAttachment           --射击点
+    self.blasterId           = blasterId                 --枪的id
+    self.blasterCfg          = blasterConfig             --枪的资源配置
+    self.blasterParamCfg     = blasterParamConfig        --枪的射击配置
+    self.bulletEffectConfig  = bulletEffectConfig        --枪的子弹配置
+    self.fireInterval        = 1000 / (blasterParamConfig.fireRate / 60)     --射击间隔（秒）
+    self.lastFireTime        = 0                         --上次射击时间
+    self.isDoFire            = false                     --是否正在按下射击按钮
+    self.blasterState        = BlasterStateEnum.Idle
+    self.pendingPostFireAction = false
+
+    self.ammoCount           = blasterParamConfig.ammo                       --当前弹药量
+    self.reserveAmmo         = blasterParamConfig.reserveAmmo                --保留弹药量
+    
+
+    self.fireIndex = 1
+    self.fireItemMaxCount = 10
+    self:InitBulletEffect()
+    self.bulletId = self.blasterCfg.bulletId
+    GlobalEventManager:Trigger("CacheBullet" , self.bulletId)
+
+    -- self.recoilSideDir = 1       -- 左右偏移方向标记（1=右，-1=左）
+
+    self.switchTime = 0     --切换时间
+    self.reloadTime = 0     --换弹时间
+    self.isActice = false   -- 是否激活
+
+    --开镜
+    self.isScopeing = false --是否正在开镜
+    self.isScopeOpen = false --是否已开镜
+    self.isScopeInputDown = false
+    self.scopeScale = 0
+
+    --开镜附件
+    self.ScopeAttachment = nil
+
+    --是否正在跑步
+    self.isRun = false
+    --拉栓
+    -- self.isBolted = false
+
+    --是否自动
+    -- self.isAutoFire = blasterParamConfig.autoFire
+
+    self.bindToRenderStepName = "BaseBlaster_Camera" .. self.item.uid
+
+    self:OnInit()
+end
+
+function BaseBlaster_Camera:InitBulletEffect()
+    local BulletIDFolder = BulletEffectFloder:FindFirstChild(tostring(self.blasterCfg.bulletId))
+    local fireEffect = BulletIDFolder:FindFirstChild(self.bulletEffectConfig.fireName)
+    if not fireEffect then
+        return
+    end
+    self.baseFireEffect = fireEffect
+end
+
+function BaseBlaster_Camera:GetShootStartNode()
+    local character = LocalPlayer.Character
+    local weaponAttachment = character and character:FindFirstChild("WeaponAttachment")
+    if weaponAttachment then
+        local battleWeapon = weaponAttachment:FindFirstChild(tostring(self.blasterCfg.name))
+        local blasterModel = battleWeapon and battleWeapon:FindFirstChild("BlasterModel")
+        local shootAttachment = blasterModel and blasterModel:FindFirstChild("ShootAttachment")
+        local shootCube = shootAttachment and shootAttachment:FindFirstChild("Cube")
+        if shootCube then
+            return shootCube
+        end
+        local fallbackCube = weaponAttachment:FindFirstChild("ShootPosCube")
+        if fallbackCube then
+            return fallbackCube
+        end
+    end
+    return self.StartPosCube
+end
+
+function BaseBlaster_Camera:GetShootStartPosition()
+    local shootNode = self:GetShootStartNode()
+    return shootNode and shootNode.Position
+end
+
+function BaseBlaster_Camera:GetVisualShootStartNode()
+    return self.StartPosCube or self:GetShootStartNode()
+end
+
+function BaseBlaster_Camera:GetFireEffectEulerOffset()
+    local offset = self.bulletEffectConfig.fireEulerOffset
+    if offset then
+        return Vector3.New(offset[1] or 0 , offset[2] or 0 , offset[3] or 0)
+    end
+    return Vector3.New(0 , self.bulletEffectConfig.muzEulerY or 0 , 0)
+end
+
+function BaseBlaster_Camera:GetFireEffect()
+    local fireEffect = self.firePool[self.fireIndex]
+    local StartPosCube = self:GetVisualShootStartNode()
+    if not StartPosCube then
+        return
+    end
+    if not fireEffect then
+        local fireEffectClone = self.baseFireEffect:Clone()
+        fireEffectClone.Parent = WorkSpace--self.shootAttachment
+        -- if self.bulletEffectConfig.FirePos then
+        --     fireEffectClone.LocalPosition = Vector3.New(self.bulletEffectConfig.FirePos[1] , self.bulletEffectConfig.FirePos[2] , self.bulletEffectConfig.FirePos[3])
+        -- else
+        --     fireEffectClone.LocalPosition = Vector3.zero
+        -- end
+        -- self.StartPosCube
+        fireEffectClone.Scale = Vector3.New(self.bulletEffectConfig.scale , self.bulletEffectConfig.scale , self.bulletEffectConfig.scale)
+        self.firePool[self.fireIndex] = fireEffectClone
+        fireEffect = fireEffectClone
+    end
+    fireEffect.Position = StartPosCube.Position
+    fireEffect.Euler = StartPosCube.Euler + Vector3.New(0, 0 , self.bulletEffectConfig.muzEulerY)--+ self:GetFireEffectEulerOffset()
+    return fireEffect
+end
+
+function BaseBlaster_Camera:PlayConfiguredSound(soundField, position, isFixPosPlay)
+    return SoundManager:PlayConfiguredWeaponSound(
+        self.blasterCfg,
+        soundField,
+        position,
+        isFixPosPlay
+    )
+end
+
+function BaseBlaster_Camera:PlaySwitchSound()
+    self:PlayConfiguredSound("switchSound")
+end
+
+function BaseBlaster_Camera:PlayShootSound()
+    local position = self:GetShootStartPosition()
+    self:PlayConfiguredSound("shootSound", position, true)
+end
+
+function BaseBlaster_Camera:PlayReloadSound()
+    self:PlayConfiguredSound("reloadSound")
+end
+
+function BaseBlaster_Camera:PlayBoltActionSound()
+    self:PlayConfiguredSound("boltActionSound")
+end
+
+-- 枪的唤醒函数
+function BaseBlaster_Camera:BlasterAwake()
+    if self.isActice then
+        return
+    end
+    -- self.characterConnect = LocalPlayer.Character.MoveStateChange:Connect(function (bfState, newState)
+    --     self.isRun = newState == Enum.BehaviorState.Walk or newState == Enum.BehaviorState.Fly
+    -- end)
+    Player.EventManager:Trigger("BlasterAwake" , self.item.uid)
+    self:RegisterKeyEvent()
+    self.isActice = true
+    self.blasterModelTrans.Visible = true
+    self.blasterState = BlasterStateEnum.Switching
+    self.switchTime = self.blasterCfg.switchTime
+    self.blasterAnimations:Play(BlasterStateAnimEnum[BlasterStateEnum.Switching] , 0 , 0)
+    self:PlaySwitchSound()
+
+    self.lastFireTime = 0
+    rs:BindToRenderStep(self.bindToRenderStepName, Enum.RenderPriority.Camera.Value + 1, function(dt)
+        self:FireShakeUpdate(dt)
+	end)
+    self:OnBlasterAwake()
+    -- local character = Player:GetCharacter()
+    -- character.MoveStateChange:Connect(function (bfState, newState)
+    --     if newState == Enum.BehaviorState.Walk then
+    --         breatheSpeed = 12
+    --     else
+    --         breatheSpeed = 1.8
+    --     end
+    -- end)
+    if self.renderStepped then
+        return
+    end
+    self.renderStepped = rs.RenderStepped:Connect(function(dt)
+        if self.blasterState == BlasterStateEnum.Switching then
+            self:RecoverRunPose(dt)
+            self.switchTime = self.switchTime - dt
+            if self.switchTime <= 0 then
+                self.blasterState = BlasterStateEnum.Idle
+                self:TryOpenScopeByInput()
+            end
+            return
+        end
+        if self.blasterState == BlasterStateEnum.Reloading then
+            self:RecoverRunPose(dt)
+            self.reloadTime = self.reloadTime - dt
+            if self.reloadTime <= 0 then
+                self:ReloadEnd()
+            end
+            return
+        end
+        if self.isScopeing then
+            self:TweenScope(dt)
+            return
+        end
+        if self:TryOpenScopeByInput() then
+            return
+        end
+        if self.blasterState == BlasterStateEnum.Idle then
+            self:Run(dt)
+        else
+            self:RecoverRunPose(dt)
+        end
+        if not self.isDoFire then
+            return
+        end
+        local res = self:CheckCanFire()
+        if not res then
+            return
+        end
+        self:Fire()
+    end)
+    if self.ammoCount <= 0 and self.reserveAmmo > 0 then
+        self:Reload()
+        return
+    end
+end
+
+function BaseBlaster_Camera:RegisterKeyEvent()
+    -- ContextActionService:BindContext(
+    --     "Reload",
+    --     function(actionName, inputState, inputObj)
+    --         if inputState == Enum.UserInputState.InputBegin.Value then
+    --             -- self.pawn.controlledWeaponPlantInstance:TryReload()
+    --             if self.ammoCount < self.blasterParamCfg.ammo and self.reserveAmmo > 0 then
+    --                 self:Reload()
+    --                 return
+    --             end
+    --         end
+    --     end,
+    --     false,
+    --     Enum.KeyCode.R
+    -- )
+    ContextActionService:BindContext(
+        "OpenScope",
+        function(actionName, inputState, inputObj)
+            if inputState == Enum.UserInputState.InputBegin.Value then
+                self.isScopeInputDown = true
+                self:TryOpenScopeByInput()
+            elseif inputState == Enum.UserInputState.InputEnd.Value then
+                self.isScopeInputDown = false
+                if self.isScopeOpen then
+                    Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, false , false)
+                    self:CloseScope()
+                end
+            end
+        end,
+        false,
+        Enum.UserInputType.MouseButton2
+    )
+    -- local function inputBegan( inputObj, bGameProcessd )
+    --     print("inputBegan")
+    --     if inputObj.UserInputType ~= Enum.UserInputType.MouseButton2.Value or self.blasterState ~= BlasterStateEnum.Idle then
+    --         return
+    --     end
+    --     if not self.isScopeOpen then
+    --         if self:OpenScope() then
+    --             Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, true , true)
+    --         end
+    --     end
+    -- end
+    -- local function inputEnded( inputObj, bGameProcessd )
+    --     if inputObj.UserInputType ~= Enum.UserInputType.MouseButton2.Value or self.blasterState ~= BlasterStateEnum.Idle then
+    --         return
+    --     end
+    --         if self.isScopeOpen then
+    --             Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, false , false)
+    --             self:CloseScope()
+    --         end
+    -- end
+    -- if self.inputBegan or self.inputEnded then
+    --     print("----------------------------------------fuck!!!!!!!")
+    --     return
+    -- end
+    -- print("----------------------------------------")
+    -- self.inputBegan = UserInputService.InputBegan:Connect(inputBegan)
+    -- self.inputEnded = UserInputService.InputEnded:Connect(inputEnded)
+end
+
+function BaseBlaster_Camera:TryOpenScopeByInput()
+    if not self.isScopeInputDown then
+        return false
+    end
+    if self.blasterState ~= BlasterStateEnum.Idle or self.isDoFire then
+        return false
+    end
+    if self.isScopeOpen or self.isScopeing then
+        return false
+    end
+    if self:OpenScope() then
+        Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, true , true)
+        return true
+    end
+    return false
+end
+
+function BaseBlaster_Camera:ScopeInputBegin()
+    if not self.isActice then
+        return
+    end
+    self.isScopeInputDown = true
+    self:TryOpenScopeByInput()
+end
+
+function BaseBlaster_Camera:ScopeInputEnd()
+    self.isScopeInputDown = false
+    if self.isScopeOpen then
+        Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, false , false)
+        self:CloseScope()
+    end
+end
+
+function BaseBlaster_Camera:ToggleScopeByButton()
+    if not self.isActice then
+        return false
+    end
+    self.isScopeInputDown = false
+    if self.isScopeOpen or self.isScopeing then
+        self:CloseScope()
+        return true
+    end
+    if self.blasterState ~= BlasterStateEnum.Idle or self.isDoFire then
+        return false
+    end
+    if self:OpenScope() then
+        Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, true , true)
+        return true
+    end
+    return false
+end
+
+function BaseBlaster_Camera:OpenScopeByButton()
+    if not self.isActice then
+        return false
+    end
+    self.isScopeInputDown = false
+    if self.isScopeOpen or self.isScopeing then
+        return true
+    end
+    if self.blasterState ~= BlasterStateEnum.Idle or self.isDoFire then
+        return false
+    end
+    if self:OpenScope() then
+        Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, true , true)
+        return true
+    end
+    return false
+end
+
+function BaseBlaster_Camera:CloseScopeByButton()
+    if not self.isActice then
+        return false
+    end
+    self.isScopeInputDown = false
+    if self.isScopeOpen or self.isScopeing then
+        self:CloseScope()
+        return true
+    end
+    return false
+end
+
+function BaseBlaster_Camera:FireOnceOnRelease()
+    if not self.isActice or self.blasterState ~= BlasterStateEnum.Idle then
+        return false
+    end
+    self.isDoFire = false
+    local res = self:CheckCanFire()
+    if not res then
+        return false
+    end
+    self:Fire()
+    self.recoil:Reset()
+    return true
+end
+
+function BaseBlaster_Camera:BlasterDisalbled()
+    -- self.bindToRenderstep:Disconnect()
+    Player.EventManager:Trigger("ShootCDStop")
+    Player.EventManager:Trigger("ReloadCDStop")
+    self.isScopeInputDown = false
+    self.pendingPostFireAction = false
+    self:WeaponUp()
+    rs:UnbindFromRenderStep(self.bindToRenderStepName)
+    if self.renderStepped then
+        self.renderStepped:Disconnect()
+        self.renderStepped = nil
+    end
+    ContextActionService:UnbindContext("Reload")
+    ContextActionService:UnbindContext("OpenScope")
+    if self.inputBegan then
+        self.inputBegan:Disconnect()
+        self.inputBegan = nil
+    end
+    if self.inputEnded then
+        self.inputEnded:Disconnect()
+        self.inputEnded = nil
+    end
+    self.blasterModelTrans.Visible = false
+    self.isActice = false
+    Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, false , false)
+    self:OnDisalbledKeyEvent()
+end
+
+--[[
+    startRunPos={22,-14,0},startRunEuler={-10,-56,0},endRunPos={24,-16,0},endRunEuler={-10,-45,0}
+    起步时候  枪的坐标移动到startRunPos  然后在endRunPos之间开始循环移动 要像跑步的动作一样
+]]--
+function BaseBlaster_Camera:IsStraightForwardMoving()
+    local character = LocalPlayer.Character
+    if not character then
+        return false
+    end
+    local moveDir = character.MoveDirection
+    if not moveDir or Vector3.Magnitude(moveDir) < 0.01 then
+        return false
+    end
+    local lookDir = character.Rotation:LookDir()
+    local moveDirXZ = Vector3.New(moveDir.X , 0 , moveDir.Z)
+    local lookDirXZ = Vector3.New(lookDir.X , 0 , lookDir.Z)
+    local moveLen = Vector3.Magnitude(moveDirXZ)
+    local lookLen = Vector3.Magnitude(lookDirXZ)
+    if moveLen < 0.01 or lookLen < 0.01 then
+        return false
+    end
+    local forwardDot = moveDirXZ:Dot(lookDirXZ) / (moveLen * lookLen)
+    return forwardDot <= -RUN_FORWARD_DOT_THRESHOLD
+end
+
+function BaseBlaster_Camera:RecoverRunPose(dt)
+    if not self.runPos then
+        return
+    end
+    local t = math.min(dt * RUN_RECOVER_LERP_SPEED , 1)
+    local curPos = Vector3.Lerp(self.blasterModel.LocalPosition , self.initPos , t)
+    local curEuler = Vector3.Lerp(self.blasterModel.LocalEuler , self.initEuler , t)
+    self.blasterModel.LocalPosition = curPos
+    self.blasterModel.LocalEuler = curEuler
+    if Vector3.Magnitude(self.blasterModel.LocalPosition - self.initPos) <= 0.01 then
+        self.blasterModel.LocalPosition = self.initPos
+        self.blasterModel.LocalEuler = self.initEuler
+    end
+end
+
+function BaseBlaster_Camera:Run(dt)
+    if self.isScopeOpen or self.isScopeing then
+        return
+    end
+    local curTime = rs:CurrentSteadyTimeStampMS()
+    if not self.runPos or self.blasterState ~= BlasterStateEnum.Idle or self.isDoFire or curTime - self.lastFireTime < self.fireInterval then
+        self:RecoverRunPose(dt)
+        return
+    end
+    if not self:IsStraightForwardMoving() then
+        self:RecoverRunPose(dt)
+        return
+    end
+    local t = math.min(dt * RUN_POSE_LERP_SPEED , 1)
+    self.blasterModel.LocalPosition = Vector3.Lerp(self.blasterModel.LocalPosition , self.runPos , t)
+    self.blasterModel.LocalEuler = Vector3.Lerp(self.blasterModel.LocalEuler , self.runEuler , t)
+end
+
+-- 开火时的抖动 + 摄像机后坐力
+function BaseBlaster_Camera:FireShakeUpdate(dt)
+    local shakeOffset = self.fireShake:Update(dt)
+    if shakeOffset then
+        self.camera.LocalEuler = self.camera.LocalEuler + shakeOffset
+    end
+    self.cameraRecoil:Update(dt)
+    self.recoil:Update(dt)
+    self:TryPostFireAction()
+end
+
+function BaseBlaster_Camera:TryPostFireAction()
+    if not self.pendingPostFireAction or not self.isActice then
+        return
+    end
+    if not self.fireShake:IsFinished() or not self.cameraRecoil:IsFinished() then
+        return
+    end
+
+    self.pendingPostFireAction = false
+    if self.ammoCount > 0 then
+        self:PlayBoltActionSound()
+    elseif self.reserveAmmo > 0 then
+        self:Reload()
+    end
+end
+
+function BaseBlaster_Camera:GetRecoilRadius()
+    return self.recoil:GetRecoilRadiusScale()
+end
+
+function BaseBlaster_Camera:WeaponDo()
+    self.isDoFire = true
+    if self.runPos and self.blasterState ~= BlasterStateEnum.Reloading then
+        self.blasterModel.LocalPosition = self.initPos
+        self.blasterModel.LocalEuler = self.initEuler
+    end
+end
+
+function BaseBlaster_Camera:WeaponUp()
+    self.isDoFire = false
+    self:OnUpFire()
+    self.recoil:Reset()
+    self:TryOpenScopeByInput()
+end
+
+function BaseBlaster_Camera:CheckCanFire()
+    if self.ammoCount <= 0 and self.reserveAmmo > 0 then
+        if self.pendingPostFireAction then
+            return false
+        end
+        self:Reload()
+        return false
+    end
+    if self.ammoCount <= 0 then
+        return false
+    end
+    if not self:OnCheckCanFire() then
+        return false
+    end
+    local curTime = rs:CurrentSteadyTimeStampMS()
+    if curTime - self.lastFireTime < self.fireInterval then
+        return false
+    end
+    self.lastFireTime = curTime
+    return true
+end
+
+function BaseBlaster_Camera:Fire()
+    local effectNode = self:GetFireEffect()
+    if not effectNode then
+        return
+    end
+    effectNode:ReStart()
+    effectNode.Visible = true
+    self:PlayShootSound()
+    self.fireIndex = self.fireIndex + 1
+    if self.fireIndex > self.fireItemMaxCount then
+        self.fireIndex = 1
+    end
+    
+    --后坐力拉大
+    self.curRecoil = math.min(self.curRecoil + self.RecoilConst , self.RecoilMax)
+    self.isBackDone = false
+    local aimAssistCompensation = self:GetAimAssistHitCompensation()
+    self.currentFireRealHitMap = {}
+    self:OnFire()
+    self.fireShake:OnFire()
+    self.cameraRecoil:OnFire()
+    -- self.fov:OnFire()
+    self.recoil:OnFire()
+
+    -- self.ammoCount = self.ammoCount - 1
+    self.pendingPostFireAction = true
+    Player.EventManager:Trigger("AmmoCountUpdate" , self.ammoCount)
+    Player.EventManager:Trigger("ShootCDStart" , self.fireInterval / 1000)
+    
+	local targetPos = self.bulletsManager.lastFiredTargetPos
+	if targetPos then
+		BattleService:SendShootReq(self.blasterId , targetPos)
+	end
+    local hasRealHitCompensationTarget = false
+    if aimAssistCompensation and aimAssistCompensation.playerId then
+        hasRealHitCompensationTarget = self.currentFireRealHitMap[tostring(aimAssistCompensation.playerId)] == true
+    end
+    self.currentFireRealHitMap = nil
+    if not hasRealHitCompensationTarget then
+        self:MarkAimAssistCompensatedHit(aimAssistCompensation)
+        self:SendAimAssistHitCompensation(aimAssistCompensation)
+    end
+end
+
+function BaseBlaster_Camera:OnBulletHitPlayer(targetPos, userId, checkType)
+    if self.currentFireRealHitMap then
+        self.currentFireRealHitMap[tostring(userId)] = true
+    end
+    if self:IsAimAssistCompensatedPlayer(userId) then
+        return
+    end
+	BattleService:SendBulletHitReq(self.blasterId, targetPos, userId, checkType)
+end
+
+function BaseBlaster_Camera:IsAimAssistCompensatedPlayer(userId)
+    if not self.aimAssistCompensatedHitMap then
+        return false
+    end
+    local expireTime = self.aimAssistCompensatedHitMap[tostring(userId)]
+    if not expireTime then
+        return false
+    end
+    if rs:CurrentSteadyTimeStampMS() > expireTime then
+        self.aimAssistCompensatedHitMap[tostring(userId)] = nil
+        return false
+    end
+    return true
+end
+
+function BaseBlaster_Camera:GetAimAssistHitCompensation()
+    AimAssistManager = AimAssistManager or require(MainStorage.Scripts.Manager.AimAssistManager)
+    return AimAssistManager:GetHitCompensation()
+end
+
+function BaseBlaster_Camera:MarkAimAssistCompensatedHit(compensation)
+    if not compensation or not compensation.playerId then
+        return
+    end
+    self.aimAssistCompensatedHitMap = self.aimAssistCompensatedHitMap or {}
+    self.aimAssistCompensatedHitMap[tostring(compensation.playerId)] = rs:CurrentSteadyTimeStampMS() + 500
+end
+
+function BaseBlaster_Camera:SendAimAssistHitCompensation(compensation)
+    if not compensation or not compensation.playerId or not compensation.targetPos or not compensation.checkType then
+        return
+    end
+    self:ShowAimAssistCompensationDamageTips(compensation)
+    BattleService:SendBulletHitReq(self.blasterId, compensation.targetPos, compensation.playerId, compensation.checkType)
+end
+
+function BaseBlaster_Camera:ShowAimAssistCompensationDamageTips(compensation)
+    if not compensation.targetName then
+        return
+    end
+    local damageNum = compensation.checkType == BodyEnum.BodyType.Head
+        and self.blasterParamCfg.headDamage
+        or self.blasterParamCfg.baseDamage
+    GlobalEventManager:Trigger("ShowDamageTips", {
+        targetPos = compensation.targetPos,
+        targetName = compensation.targetName,
+        damageNum = damageNum,
+        isHeadshot = compensation.checkType == BodyEnum.BodyType.Head,
+    })
+end
+
+function BaseBlaster_Camera:Reload()
+    if self.blasterState == BlasterStateEnum.Reloading then
+        return
+    end
+    self.pendingPostFireAction = false
+    self.blasterState = BlasterStateEnum.Reloading
+    self.reloadTime = self.blasterCfg.reloadTime
+    Player.EventManager:Trigger("ShootCDStop")
+    Player.EventManager:Trigger("ReloadCDStart" , self.reloadTime)
+    self.blasterAnimations:Play(BlasterStateAnimEnum[BlasterStateEnum.Reloading] , 0 , 0)
+    self:PlayReloadSound()
+
+    Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, false , false)
+    self:OnReload()
+end
+
+function BaseBlaster_Camera:ReloadEnd()
+    self.blasterState = BlasterStateEnum.Idle
+    Player.EventManager:Trigger("ReloadCDStop")
+    local allAmmo = self.ammoCount + self.reserveAmmo
+    local ammo = self.blasterParamCfg.ammo
+    local reAmmo = allAmmo - self.blasterParamCfg.ammo
+    local addCount = reAmmo >= 0 and ammo or self.reserveAmmo
+    self.reserveAmmo = math.max(reAmmo , 0)
+    self.ammoCount = math.max(addCount , 0)
+    Player.EventManager:Trigger("AmmoCountUpdate" , self.ammoCount , self.reserveAmmo)
+    self:TryOpenScopeByInput()
+end
+
+-- 打开瞄准镜
+function BaseBlaster_Camera:OpenScope()
+    local curTime = rs:CurrentSteadyTimeStampMS()
+    if curTime - self.lastFireTime < self.fireInterval then
+        return false
+    end
+
+    if self.isScopeOpen and self.isScopeing then
+        return true
+    end
+    if self.isScopeOpen then
+        return true
+    end
+    self.isScopeOpen = true
+    self.isScopeing = true
+    self.scopeScale = 0
+    self.scopeStartPos = self.blasterModel.LocalPosition
+    self.scopeStartEuler = self.blasterModel.LocalEuler
+    self.scopeEndPos = self.aimPos
+    self.scopeEndEuler = self.aimEuler
+    for _, child in ipairs(self.ScopeAttachment.Children) do
+        child.Visible = true
+    end
+    return true
+end
+
+function BaseBlaster_Camera:CloseScope(immediate)
+    if not self.isScopeOpen and not self.isScopeing then
+        return
+    end
+    Player.SaveDB:SetDBByKey(SaveDBEnum.IsScope, false , false)
+    for _, child in ipairs(self.ScopeAttachment.Children) do
+        child.Visible = false
+    end
+    if immediate then
+        self.isScopeOpen = false
+        self.isScopeing = false
+        self.scopeScale = 0
+        self.scopeStartPos = nil
+        self.scopeStartEuler = nil
+        self.scopeEndPos = nil
+        self.scopeEndEuler = nil
+        self.blasterModel.LocalPosition = self.initPos
+        self.blasterModel.LocalEuler = self.initEuler
+        self.blasterModelTrans.Visible = true
+        self.camera.FieldOfView = CONST.CameraFOV
+        GlobalEventManager:Trigger("ChangeCameraRotaionSpeed" , false)
+        return
+    end
+    if self.isScopeing and not self.isScopeOpen then
+        return
+    end
+    self.isScopeOpen = false
+    self.isScopeing = true
+    self.scopeScale = 0
+    self.scopeStartPos = self.blasterModel.LocalPosition
+    self.scopeStartEuler = self.blasterModel.LocalEuler
+    self.scopeEndPos = self.initPos
+    self.scopeEndEuler = self.initEuler
+    self.blasterModelTrans.Visible = true
+    self.camera.FieldOfView = CONST.CameraFOV
+    GlobalEventManager:Trigger("ChangeCameraRotaionSpeed" , false)
+end
+
+function BaseBlaster_Camera:TweenScope(dt)
+    if not self.isScopeing then
+        return
+    end
+    self.scopeScale = self.scopeScale + dt * 6
+    local startPos = self.scopeStartPos or (self.isScopeOpen and self.initPos or self.aimPos)
+    local endPos = self.scopeEndPos or (self.isScopeOpen and self.aimPos or self.initPos)
+    local startEuler = self.scopeStartEuler or (self.isScopeOpen and self.initEuler or self.aimEuler)
+    local endEuler = self.scopeEndEuler or (self.isScopeOpen and self.aimEuler or self.initEuler)
+
+    local curPos = Vector3.Lerp(startPos , endPos , self.scopeScale)
+    local curEuler = Vector3.Lerp(startEuler , endEuler , self.scopeScale)
+
+    self.blasterModel.LocalPosition = curPos
+    self.blasterModel.LocalEuler = curEuler
+    if self.scopeScale >= 1 then
+        self.isScopeing = false
+        self.blasterModel.LocalPosition = self.isScopeOpen and self.aimPos or self.initPos
+        self.blasterModel.LocalEuler = self.isScopeOpen and self.aimEuler or self.initEuler
+        self.scopeStartPos = nil
+        self.scopeStartEuler = nil
+        self.scopeEndPos = nil
+        self.scopeEndEuler = nil
+        if self.isScopeOpen then
+            self.blasterModelTrans.Visible = false
+            self.camera.FieldOfView = 20
+            GlobalEventManager:Trigger("ChangeCameraRotaionSpeed" , true)
+        end
+    end
+end
+
+-- 获取当前武器弹药数量
+function BaseBlaster_Camera:GetAmmoCount()
+    return self.ammoCount
+end
+
+-- 获取当前武器保留弹药数量
+function BaseBlaster_Camera:GetReserveAmmo()
+    return self.reserveAmmo
+end
+
+function BaseBlaster_Camera:GetItem()
+    return self.item
+end
+
+--复写方法 初始化
+function BaseBlaster_Camera:OnInit()
+end
+
+--复写方法  武器唤醒
+function BaseBlaster_Camera:OnBlasterAwake()
+end
+
+--复写方法  注册按键事件
+function BaseBlaster_Camera:OnRegisterKeyEvent()
+end
+
+--复写方法  bolt 动作
+function BaseBlaster_Camera:BoltAction()
+end
+
+--复写方法  检查是否可以射击
+function BaseBlaster_Camera:OnCheckCanFire()
+    return true
+end
+
+--复写方法  子弹射击
+function BaseBlaster_Camera:OnFire()
+end
+
+--复写方法  松开射击
+function BaseBlaster_Camera:OnUpFire()
+end
+
+--复写方法  重新加载
+function BaseBlaster_Camera:OnReload()
+end
+
+function BaseBlaster_Camera:OnDisalbledKeyEvent()
+end
+return BaseBlaster_Camera

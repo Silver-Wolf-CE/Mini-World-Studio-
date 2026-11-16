@@ -1,0 +1,312 @@
+local BaseCamera = require(script.Parent.BaseCamera)
+local WorkSpace = game:GetService("WorkSpace")
+local Players = game:GetService('Players')
+local player = Players.LocalPlayer
+local ClassicCamera = CommonModule.Class("ClassicCamera", BaseCamera)
+local MouseService = game:GetService("MouseService")
+local GameSetting = game:GetService("GameSetting")
+
+local MainStorage   = game:GetService("MainStorage")
+local GlobalEventManager = require(MainStorage.Scripts.Manager.GlobalEventManager)
+local PlayerManager = require(MainStorage.Scripts.Manager.PlayerManager)
+local WorldService = game:GetService("WorldService")
+local ConfigService = game:GetService("ConfigService")
+local scaleWinWidth = 720
+local scaleWinHeight = 180
+local CONST = require(MainStorage.Scripts.CONST)
+local SaveDBEnum = EnumHelper.SaveDBEnum
+
+local CameraRecoilState = require(MainStorage.Scripts.Model.CameraRecoilState)
+local CAMERA_ROTATION_SMOOTH_SPEED = 50
+local CAMERA_MAX_FRAME_DELTA = 0.05
+local SENSITIVITY_PERCENT_BASE = 100
+
+local function NormalizeAngle(angle)
+	while angle >= 180 do
+		angle = angle - 360
+	end
+	while angle < -180 do
+		angle = angle + 360
+	end
+	return angle
+end
+
+local function ShortestAngleDelta(current, target)
+	return NormalizeAngle(target - current)
+end
+
+local function ConvertSensitivityPercent(value)
+	return math.clamp((tonumber(value) or 0) / SENSITIVITY_PERCENT_BASE, 0, 1)
+end
+
+function ClassicCamera:OnInit(...)
+	BaseCamera.OnInit(self, ...)
+	self.m_lastEyePos = Vector3.New(0, 0, 0)
+	self.m_lastQuaterion = Quaternion.FromEuler(0, 0, 0)
+	self.m_isScoped = false
+	self.m_targetRotation = {
+		x = self.m_rotation.x,
+		y = self.m_rotation.y,
+		z = self.m_rotation.z,
+	}
+	local freeViewEuler = Vector3.FromQuaternion(self.m_quaFreeView)
+	self.m_freeViewRotation = {
+		x = freeViewEuler.x,
+		y = NormalizeAngle(freeViewEuler.y),
+		z = 0,
+	}
+	self.m_targetFreeViewRotation = {
+		x = self.m_freeViewRotation.x,
+		y = self.m_freeViewRotation.y,
+		z = 0,
+	}
+
+	local function loadSensitivity()
+		local gamePlayer = PlayerManager.localPlayer
+		if gamePlayer and gamePlayer.SaveDB then
+			local rawCameraSens = gamePlayer.SaveDB:GetDBByKey(SaveDBEnum.CameraSensitivity, CONST.InitCameraSensitivitySpeed)
+			local rawADSSens = gamePlayer.SaveDB:GetDBByKey(SaveDBEnum.ADSSensitivity, CONST.InitADSSensitivitySpeed)
+			self.m_cameraSensitivity = ConvertSensitivityPercent(rawCameraSens)
+			self.m_adsSensitivity = ConvertSensitivityPercent(rawADSSens)
+		else
+			self.m_cameraSensitivity = 1.0
+			self.m_adsSensitivity = 1.0
+		end
+		self:SetGameSensitivity(self.m_isScoped and self.m_adsSensitivity or self.m_cameraSensitivity)
+	end
+
+	loadSensitivity()
+
+	GlobalEventManager:SubscribeEvent("ChangeCameraRotaionSpeed", self, function (isScope)
+		self.m_isScoped = isScope
+		self.m_rotationSpeed = isScope and CustomSetConfig.ScopeRotateMoveSpeed or CustomSetConfig.CameraRotateMoveSpeed
+		self:SetGameSensitivity(isScope and self.m_adsSensitivity or self.m_cameraSensitivity)
+	end)
+
+	GlobalEventManager:SubscribeEvent("OnSetDBByKey", self, function (sKey, data)
+		if sKey == SaveDBEnum.CameraSensitivity then
+			self.m_cameraSensitivity = ConvertSensitivityPercent(data)
+			if not self.m_isScoped then
+				self:SetGameSensitivity(self.m_cameraSensitivity)
+			end
+		elseif sKey == SaveDBEnum.ADSSensitivity then
+			self.m_adsSensitivity = ConvertSensitivityPercent(data)
+			if self.m_isScoped then
+				self:SetGameSensitivity(self.m_adsSensitivity)
+			end
+		end
+	end)
+
+	GlobalEventManager:SubscribeEvent("PlayerInitDataDone", self, function ()
+		loadSensitivity()
+	end)
+
+	GlobalEventManager:SubscribeEvent("SyncCameraToCharacterYaw", self, function (characterYaw)
+		local yaw = tonumber(characterYaw)
+		if not yaw then
+			local character = Players.LocalPlayer and Players.LocalPlayer.Character
+			local characterEuler = character and character:GetRenderEuler()
+			yaw = characterEuler and (characterEuler.Y or characterEuler.y)
+		end
+		if not yaw then
+			return
+		end
+		local cameraYaw = yaw + 180
+		self.m_rotation.x = 0
+		self.m_rotation.y = cameraYaw
+		self.m_rotation.z = 0
+		self.m_targetRotation.x = 0
+		self.m_targetRotation.y = cameraYaw
+		self.m_targetRotation.z = 0
+		CameraRecoilState.pitchOffset = 0
+		if ConfigService.LCSMode then
+			self.m_freeViewRotation.x = 0
+			self.m_freeViewRotation.y = NormalizeAngle(cameraYaw)
+			self.m_targetFreeViewRotation.x = 0
+			self.m_targetFreeViewRotation.y = self.m_freeViewRotation.y
+			self.m_quaFreeView = Quaternion.FromEuler(0, cameraYaw, 0)
+		end
+	end)
+
+	GlobalEventManager:SubscribeEvent("MobileCameraRotate", self, function(dx, dy)
+		self:RotationByMouseMove(tonumber(dx) or 0, tonumber(dy) or 0)
+	end)
+
+	GlobalEventManager:SubscribeEvent("AimAssistCameraDelta", self, function(pitchDelta, yawDelta)
+		self:ApplyAimAssistDelta(tonumber(pitchDelta) or 0, tonumber(yawDelta) or 0)
+	end)
+end
+
+function ClassicCamera:GetQuaternion()
+	local q = BaseCamera.GetQuaternion(self)
+	if CameraRecoilState.pitchOffset ~= 0 then
+		if ConfigService.LCSMode then
+			local freeViewRotation = self.m_freeViewRotation
+			return Quaternion.FromEuler(
+				freeViewRotation.x + CameraRecoilState.pitchOffset,
+				freeViewRotation.y,
+				0
+			)
+		end
+		return Quaternion.FromEuler(
+			self.m_rotation.x + CameraRecoilState.pitchOffset,
+			self.m_rotation.y,
+			self.m_rotation.z
+		)
+	end
+	return q
+end
+
+function ClassicCamera:RotationByMouseMove( dx, dy)
+	local rawDx = tonumber(dx) or 0
+	local rawDy = tonumber(dy) or 0
+	if rawDx ~= 0 or rawDy ~= 0 then
+		GlobalEventManager:Trigger("CameraManualRotateInput", rawDx, rawDy)
+	end
+	dx = rawDx
+	dy = rawDy
+    local viewSize = WorldService:GetUISize()
+	dx = dx / viewSize.x * scaleWinWidth
+	dy = dy  / viewSize.y * scaleWinHeight
+    if ConfigService.LCSMode then
+		local sensitivity = self:GetGameSensitivity()
+        local xdist = dx * sensitivity * 2.5 / WorkSpace.CurrentCamera.WindowSize.x
+        local ydist = dy * sensitivity * 2.5 / WorkSpace.CurrentCamera.WindowSize.y
+		local yaw = NormalizeAngle(self.m_targetFreeViewRotation.y + xdist * 180)
+		local pitch = self.m_targetFreeViewRotation.x + ydist * 90
+        if pitch < -89.995 then
+            pitch = -89.995
+        end
+
+        if pitch > 89.995 then
+            pitch = 89.995
+        end
+
+		self.m_targetFreeViewRotation.x = pitch
+		self.m_targetFreeViewRotation.y = yaw
+    else
+		local sensitivity = self:GetGameSensitivity()
+		local x = self.m_targetRotation.x + dy * self.m_rotationSpeed * sensitivity
+		local y = NormalizeAngle(self.m_targetRotation.y + dx * self.m_rotationSpeed * sensitivity)
+        if x > 60 then
+            x = 60
+        end
+
+        if x < -60 then
+            x = -60
+        end
+
+		self.m_targetRotation.x = x
+		self.m_targetRotation.y = y
+    end
+end
+
+function ClassicCamera:ApplyAimAssistDelta(pitchDelta, yawDelta)
+	if pitchDelta == 0 and yawDelta == 0 then
+		return
+	end
+	if ConfigService.LCSMode then
+		local pitch = self.m_targetFreeViewRotation.x + pitchDelta
+		if pitch < -89.995 then
+			pitch = -89.995
+		end
+		if pitch > 89.995 then
+			pitch = 89.995
+		end
+		self.m_targetFreeViewRotation.x = pitch
+		self.m_targetFreeViewRotation.y = NormalizeAngle(self.m_targetFreeViewRotation.y + yawDelta)
+		return
+	end
+
+	local x = self.m_targetRotation.x + pitchDelta
+	if x > 60 then
+		x = 60
+	end
+	if x < -60 then
+		x = -60
+	end
+	self.m_targetRotation.x = x
+	self.m_targetRotation.y = NormalizeAngle(self.m_targetRotation.y + yawDelta)
+end
+
+function ClassicCamera:UpdateSmoothRotation(dt)
+	dt = math.min(tonumber(dt) or 0, CAMERA_MAX_FRAME_DELTA)
+	if dt <= 0 then
+		return
+	end
+	local alpha = 1 - math.exp(-CAMERA_ROTATION_SMOOTH_SPEED * dt)
+	if ConfigService.LCSMode then
+		local current = self.m_freeViewRotation
+		local target = self.m_targetFreeViewRotation
+		current.x = current.x + (target.x - current.x) * alpha
+		current.y = NormalizeAngle(current.y + ShortestAngleDelta(current.y, target.y) * alpha)
+		self.m_quaFreeView = Quaternion.FromEuler(current.x, current.y, 0)
+		return
+	end
+
+	self.m_rotation.x = self.m_rotation.x
+		+ (self.m_targetRotation.x - self.m_rotation.x) * alpha
+	self.m_rotation.y = NormalizeAngle(
+		self.m_rotation.y
+			+ ShortestAngleDelta(self.m_rotation.y, self.m_targetRotation.y) * alpha
+	)
+end
+
+function ClassicCamera:Update(dt)
+	self:UpdateSmoothRotation(dt)
+	WorkSpace = game:GetService("WorkSpace")
+	local currentCamera = WorkSpace.CurrentCamera
+	local camType = currentCamera.CameraType
+
+	if camType == Enum.CameraType.Fixed then
+		self:SetPosition(self.m_lastEyePos)
+		self:SetQuaternion(self.m_lastQuaterion)
+	elseif camType == Enum.CameraType.Attach then
+		local subpos, subeuler = self:GetSubjectPosAndEuler()
+		if not subpos or not subeuler then 
+		    return
+		end		
+		local rotation = self:GetRotation()
+		local quaternion = Quaternion.FromEuler(rotation.x, subeuler.y+180, 0)
+		local lookdir = quaternion:RotateToDir(Vector3.New(0, 0, 1))
+		if GameSetting.CameraCollide then
+			local eyepos = player:EyePosWithFilter(subpos, -lookdir, {0,1}, self:GetEyeDistance())
+			self:SetPosition(eyepos)
+		else
+			local l = self:GetEyeDistance()
+			local eyepos = Vector3.New(subpos.x - lookdir.x * l, subpos.y - lookdir.y * l, subpos.z - lookdir.z * l)
+			self:SetPosition(eyepos)		
+		end		
+		
+		self:SetQuaternion(quaternion)
+	elseif 	camType == Enum.CameraType.Watch or 
+		  	camType == Enum.CameraType.Track or  
+		  	camType == Enum.CameraType.Follow or 
+		  	camType == Enum.CameraType.Custom 
+	then
+		local subpos = self:GetSubjectPosAndEuler()
+		if not subpos then 
+		    return
+		end		
+		local quaternion = self:GetQuaternion()
+		local lookdir = quaternion:RotateToDir(Vector3.New(0, 0, 1))
+
+		if GameSetting.CameraCollide then
+			local eyepos = player:EyePosWithFilter(subpos, -lookdir, {0,1},self:GetEyeDistance())
+			self:SetPosition(eyepos)
+		else
+			local l = self:GetEyeDistance()
+			local eyepos = Vector3.New(subpos.x - lookdir.x * l, subpos.y - lookdir.y * l, subpos.z - lookdir.z * l)
+			self:SetPosition(eyepos)		
+		end	
+		self:SetQuaternion(quaternion)
+	elseif camType == Enum.CameraType.Scriptable then
+		-- Scriptable 摄像机控制权交给用户自定义脚本控制
+	end
+end
+
+function ClassicCamera:GetCameraType()
+	return Enum.CameraType.Custom.Value;
+end
+
+return ClassicCamera

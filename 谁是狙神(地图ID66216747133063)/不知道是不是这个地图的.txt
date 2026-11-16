@@ -1,0 +1,963 @@
+local MainStorage 		  	= game:GetService("MainStorage")
+local Players            	= game:GetService("Players")
+local MouseService          = game:GetService("MouseService")
+local RunService            = game:GetService("RunService")
+local UserInputService      = game:GetService("UserInputService")
+local Class              	= require(MainStorage.Scripts.Class)
+local BulletsManager     	= require(MainStorage.Scripts.Manager.BulletsManager)
+local GlobalEventManager 	= require(MainStorage.Scripts.Manager.GlobalEventManager)
+local NetMessage            = require(MainStorage.Scripts.Net.NetMessage)
+local ProtoId               = require(MainStorage.Scripts.Net.ProtoId)
+local ConfigManager         = require(MainStorage.Scripts.Manager.ConfigManager)
+local WorkSpace             = game:GetService("WorkSpace")
+local WeaponManager       = require(MainStorage.Scripts.Manager.WeaponManager)
+local SlideManager        = require(MainStorage.Scripts.Manager.SlideManager)
+local SoundManager        = require(MainStorage.Scripts.Manager.SoundManager)
+local PlayerManager       = require(MainStorage.Scripts.Manager.PlayerManager)
+local CONST               = require(MainStorage.Scripts.CONST)
+local SaveDBEnum           = EnumHelper.SaveDBEnum
+local CollideEnum          = EnumHelper.CollideEnum
+local GameModeEnum         = EnumHelper.GameModeEnum
+local WearBagEnum          = EnumHelper.WearBagEnum
+
+local BattleService = Class()
+
+local SERVER_MODEL = "Battle"
+local CAMERA_MODE_CLASSIC = Enum.CameraModel.Classic
+local CAMERA_MODE_LOCK_FIRST_PERSON = Enum.CameraModel.LockFirstPerson
+local CAMERA_THIRD_PERSON_MIN_DISTANCE = 200
+local CAMERA_THIRD_PERSON_DEFAULT_DISTANCE = 400
+local CAMERA_THIRD_PERSON_MAX_DISTANCE = 1400
+local CAMERA_DEATH_MOVE_DURATION = 0.8
+local CAMERA_DEATH_RENDER_STEP_NAME = "BattleDeathCameraMove"
+local CAMERA_FIRST_PERSON_HEIGHT_OFFSET = -20
+local CAMERA_SLIDE_HEIGHT_COMPENSATION = 30
+local CAMERA_FIRST_PERSON_OFFSET_RENDER_STEP_NAME = "BattleFirstPersonCameraHeightOffset"
+local DEATH_VISUAL_FORCE_RENDER_STEP_NAME = "BattleDeathVisualForce"
+local DEATH_VISUAL_FORCE_DURATION_MS = 1000
+local FIGHT_BGM_NAME = "FightBGM"
+local ROUND_STATE_ACTIVE = 1
+local ROUND_STATE_SELECT_MAP = 2
+local ROUND_STATE_LOADING_MAP = 3
+local VOID_FALL_CHECK_INTERVAL = 1
+local VOID_FALL_HEIGHT_DELTA = 20000
+local TEAM_BIRTH_FOLDER_NAMES = {
+	[1] = "RedBirthPosFolder",
+	[2] = "BlueBirthPosFolder",
+}
+local FREE_FOR_ALL_BIRTH_FOLDER_NAME = "BirthPosFolder"
+
+local function IsMobilePlatform()
+	return CONST.ShowMobileBattleControlInEditor == true
+		or RunService:GetAppPlatformName() ~= "PC"
+		or (UserInputService.TouchEnabled == true and UserInputService.KeyboardEnabled ~= true)
+end
+
+local function GetHorizontalDirection(direction)
+	local x = direction.X or direction.x or 0
+	local z = direction.Z or direction.z or 0
+	local length = math.sqrt(x * x + z * z)
+	if length <= 0.001 then
+		return nil
+	end
+	return Vector3.New(x / length, 0, z / length)
+end
+
+local function SlerpHorizontalDirection(startDirection, endDirection, progress)
+	local dot = math.clamp(startDirection:Dot(endDirection), -1, 1)
+	if dot > 0.999 then
+		return endDirection
+	end
+	if dot < -0.999 then
+		local sideDirection = Vector3.New(-startDirection.Z, 0, startDirection.X)
+		return startDirection * math.cos(math.pi * progress)
+			+ sideDirection * math.sin(math.pi * progress)
+	end
+	local angle = math.acos(dot)
+	local angleSin = math.sin(angle)
+	return startDirection * (math.sin((1 - progress) * angle) / angleSin)
+		+ endDirection * (math.sin(progress * angle) / angleSin)
+end
+
+local function GetWeaponShootCube(character, blasterId)
+	local weaponAttachment = character and character:FindFirstChild("WeaponAttachment")
+	if not weaponAttachment then
+		return nil
+	end
+	local blasterCfg = ConfigManager.BlasterConfig:GetBlasterConfigById(blasterId)
+	local battleWeapon = blasterCfg and weaponAttachment:FindFirstChild(tostring(blasterCfg.name))
+	local blasterModel = battleWeapon and battleWeapon:FindFirstChild("BlasterModel")
+	local shootAttachment = blasterModel and blasterModel:FindFirstChild("ShootAttachment")
+	local shootCube = shootAttachment and shootAttachment:FindFirstChild("Cube")
+	if shootCube then
+		return shootCube
+	end
+	return weaponAttachment:FindFirstChild("ShootPosCube")
+end
+
+function BattleService:ctor()
+	self.roundState = nil
+	self.deathCameraTween = nil
+	self.deathCameraTargetId = nil
+	self.firstPersonCameraOffsetActive = false
+	self.deathVisualForceMap = {}
+	self.deathVisualForceActive = false
+	self.isInBattle = false
+	self.integralPingTick = 0
+	self.killRankData = {
+		roundId = 0,
+		rankList = {},
+		teamScores = {},
+	}
+	self.localBattleTeamId = nil
+	self.battleGameMode = nil
+	self.playerTeamMap = {}
+	self.voidFallCheckTick = 0
+	self.voidFallReqPending = false
+end
+
+function BattleService:Init()
+	GlobalEventManager:SubscribeEvent("GameSecondChange", "BattleServiceIntegralPing", function()
+		if not self.isInBattle then
+			return
+		end
+		self:CheckVoidFall()
+		self.integralPingTick = self.integralPingTick + 1
+		if self.integralPingTick >= 5 then
+			self.integralPingTick = 0
+			self:SendIntegralPingReq()
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(leavingPlayer)
+		if self.deathCameraTween and leavingPlayer.UserId == self.deathCameraTargetId then
+			self:StopDeathCameraMove(true)
+			print(string.format("[BattleCamera] camera move stopped because killer left, killerId=%s", tostring(leavingPlayer.UserId)))
+		end
+		self.deathVisualForceMap[leavingPlayer.UserId] = nil
+		self.playerTeamMap[leavingPlayer.UserId] = nil
+		self:RefreshEnemyOutlines()
+	end)
+	Players.PlayerAdded:Connect(function()
+		self:RefreshEnemyOutlines()
+	end)
+	self:SetLobbyCameraMode()
+end
+
+function BattleService:GetModuleName()
+	return SERVER_MODEL
+end
+
+function BattleService:GetCharacterByPlayerId(playerId)
+	local gamePlayer = Players:GetPlayerByUserId(playerId)
+	if gamePlayer and gamePlayer.Character then
+		return gamePlayer.Character
+	end
+	local aiFolder = WorkSpace:FindFirstChild("AIPlayers")
+	if aiFolder then
+		for _, child in ipairs(aiFolder.Children or {}) do
+			local aiId = tonumber(child.UserId) or tonumber(string.match(child.Name or "", "^AI_(-?%d+)$"))
+			if aiId == tonumber(playerId) then
+				return child
+			end
+		end
+	end
+	return nil
+end
+
+function BattleService:SetCharacterOutline(character, active)
+	if character then
+		character.OutlineActive = active == true
+	end
+end
+
+function BattleService:UpdatePlayerTeamMap(rankList)
+	for _, rankInfo in ipairs(rankList or {}) do
+		local playerId = tonumber(rankInfo.playerId)
+		if playerId and rankInfo.teamId then
+			self.playerTeamMap[playerId] = rankInfo.teamId
+		end
+	end
+end
+
+function BattleService:IsEnemyPlayer(playerId)
+	playerId = tonumber(playerId)
+	local localPlayer = Players.LocalPlayer
+	if not self.isInBattle or not localPlayer or playerId == localPlayer.UserId then
+		return false
+	end
+	if tonumber(self.battleGameMode) == GameModeEnum.FreeForAll then
+		return true
+	end
+	local targetTeamId = self.playerTeamMap[playerId]
+	return targetTeamId ~= nil and tonumber(targetTeamId) ~= tonumber(self.localBattleTeamId)
+end
+
+function BattleService:RefreshEnemyOutlines()
+	for _, gamePlayer in ipairs(Players:GetPlayers()) do
+		local active = self:IsEnemyPlayer(gamePlayer.UserId)
+		self:SetCharacterOutline(gamePlayer.Character, active)
+	end
+	local aiFolder = WorkSpace:FindFirstChild("AIPlayers")
+	if aiFolder then
+		for _, character in ipairs(aiFolder.Children or {}) do
+			local aiId = tonumber(character.UserId) or tonumber(string.match(character.Name or "", "^AI_(-?%d+)$"))
+			local active = self:IsEnemyPlayer(aiId)
+			self:SetCharacterOutline(character, active)
+		end
+	end
+end
+
+function BattleService:ClearEnemyOutlines()
+	for _, gamePlayer in ipairs(Players:GetPlayers()) do
+		self:SetCharacterOutline(gamePlayer.Character, false)
+	end
+	local aiFolder = WorkSpace:FindFirstChild("AIPlayers")
+	if aiFolder then
+		for _, character in ipairs(aiFolder.Children or {}) do
+			self:SetCharacterOutline(character, false)
+		end
+	end
+end
+
+function BattleService:SetPlayerTitleVisible(character, visible)
+	local playerTitle = character and character:FindFirstChild("PlayerTitle")
+	if playerTitle then
+		playerTitle.Visible = visible
+	end
+end
+
+function BattleService:ApplyDeathVisualToCharacter(character, faceDirection, playDeathAnim)
+	if not character then
+		return
+	end
+	character.CollideGroupID = CollideEnum.PlayerCorpse
+	self:SetPlayerTitleVisible(character, false)
+	pcall(function()
+		character:StopMove()
+	end)
+	if faceDirection then
+		local _, faceRotation = Quaternion.LookAt(faceDirection, Vector3.yAxis)
+		character.Rotation = faceRotation
+	end
+	if playDeathAnim and character.Animator then
+		character.Animator:Play("Base Layer.Death", 0, 0.0)
+	end
+end
+
+function BattleService:StartDeathVisualForce()
+	if self.deathVisualForceActive then
+		return
+	end
+	self.deathVisualForceActive = true
+	RunService:BindToRenderStep(
+		DEATH_VISUAL_FORCE_RENDER_STEP_NAME,
+		Enum.RenderPriority.Camera.Value + 3,
+		function()
+			local now = RunService:CurrentSteadyTimeStampMS()
+			local hasData = false
+			for playerId, info in pairs(self.deathVisualForceMap) do
+				if now >= info.endTime then
+					self.deathVisualForceMap[playerId] = nil
+				else
+					hasData = true
+					local character = self:GetCharacterByPlayerId(playerId)
+					self:ApplyDeathVisualToCharacter(character, info.faceDirection, false)
+				end
+			end
+			if not hasData then
+				self:StopDeathVisualForce()
+			end
+		end
+	)
+end
+
+function BattleService:StopDeathVisualForce()
+	if not self.deathVisualForceActive then
+		return
+	end
+	self.deathVisualForceActive = false
+	RunService:UnbindFromRenderStep(DEATH_VISUAL_FORCE_RENDER_STEP_NAME)
+end
+
+function BattleService:ApplyPlayerDeathVisual(playerId, faceDirection)
+	local character = self:GetCharacterByPlayerId(playerId)
+	self:ApplyDeathVisualToCharacter(character, faceDirection, true)
+	local now = RunService:CurrentSteadyTimeStampMS()
+	self.deathVisualForceMap[playerId] = {
+		endTime = now + DEATH_VISUAL_FORCE_DURATION_MS,
+		faceDirection = faceDirection,
+	}
+	self:StartDeathVisualForce()
+end
+
+function BattleService:ApplyPlayerReviveVisual(playerId, revivePosition)
+	self.deathVisualForceMap[playerId] = nil
+	local character = self:GetCharacterByPlayerId(playerId)
+	if not character then
+		return
+	end
+	if revivePosition then
+		character.Position = revivePosition
+	end
+	character.CollideGroupID = CollideEnum.PlayerAlive
+	character.Velocity = Vector3.zero
+	self:SetPlayerTitleVisible(character, true)
+	pcall(function()
+		character:StopMove()
+	end)
+	if character.Animator then
+		pcall(function()
+			character.Animator:SetLayerWeight(1, 1)
+			character.Animator:Play("Base Layer.Idle", 0, 0.0)
+			character.Animator:Play("Mask Layer.TwoHandHold", 1, 0.0)
+		end)
+	end
+end
+
+function BattleService:StartFirstPersonCameraHeightOffset()
+	if self.firstPersonCameraOffsetActive then
+		return
+	end
+	self.firstPersonCameraOffsetActive = true
+	RunService:BindToRenderStep(
+		CAMERA_FIRST_PERSON_OFFSET_RENDER_STEP_NAME,
+		Enum.RenderPriority.Camera.Value + 2,
+		function()
+			if not self.firstPersonCameraOffsetActive then
+				return
+			end
+			local camera = WorkSpace.CurrentCamera
+			if camera then
+				local offsetY = CAMERA_FIRST_PERSON_HEIGHT_OFFSET
+				if SlideManager:GetIsSliding() then
+					offsetY = offsetY + CAMERA_SLIDE_HEIGHT_COMPENSATION
+				end
+				local offset = Vector3.New(0, offsetY, 0)
+				local basePosition = camera.Position
+				if self.firstPersonCameraLastPosition
+					and self.firstPersonCameraLastOffset
+					and Vector3.Magnitude(camera.Position - self.firstPersonCameraLastPosition) <= 0.01 then
+					basePosition = camera.Position - self.firstPersonCameraLastOffset
+				end
+				camera.Position = basePosition + offset
+				self.firstPersonCameraLastPosition = camera.Position
+				self.firstPersonCameraLastOffset = offset
+			end
+		end
+	)
+end
+
+function BattleService:StopFirstPersonCameraHeightOffset()
+	if not self.firstPersonCameraOffsetActive then
+		return
+	end
+	self.firstPersonCameraOffsetActive = false
+	self.firstPersonCameraLastPosition = nil
+	self.firstPersonCameraLastOffset = nil
+	RunService:UnbindFromRenderStep(CAMERA_FIRST_PERSON_OFFSET_RENDER_STEP_NAME)
+end
+
+function BattleService:SendIntegralPingReq()
+	NetMessage:SendRequest(ProtoId.Battle_IntegralPingReq, {
+		clientTime = RunService:CurrentSteadyTimeStampMS(),
+	})
+end
+
+function BattleService:IntegralPingRsp(player, message)
+	local clientTime = message and tonumber(message.clientTime)
+	if not clientTime or not self.isInBattle then
+		return
+	end
+	local ping = math.max(math.floor(RunService:CurrentSteadyTimeStampMS() - clientTime + 0.5), 0)
+	NetMessage:SendRequest(ProtoId.Battle_IntegralInfoReq, {
+		ping = ping,
+		platform = RunService:GetAppPlatformName() == "PC" and "PC" or "Mobile",
+	})
+end
+
+function BattleService:SetCameraMode(mode, minDistance, maxDistance)
+	local player = Players.LocalPlayer
+	if not player then
+		return
+	end
+	player.CameraMinZoomDistance = minDistance
+	player.CameraMaxZoomDistance = maxDistance
+	player.CameraMode = mode
+end
+
+function BattleService:SetPlayerUseCameraAngle(active)
+	local player = Players.LocalPlayer
+	local character = player and player.Character
+	if character then
+		character.UseCameraAngle = active == true
+	end
+end
+
+function BattleService:StopDeathCameraMove(keepCameraStill)
+	local wasMoving = self.deathCameraTween ~= nil
+	self.deathCameraTween = nil
+	self.deathCameraTargetId = nil
+	if wasMoving then
+		RunService:UnbindFromRenderStep(CAMERA_DEATH_RENDER_STEP_NAME)
+	end
+	if keepCameraStill then
+		local camera = WorkSpace.CurrentCamera
+		if camera then
+			camera.CameraType = Enum.CameraType.Scriptable
+		end
+	end
+end
+
+function BattleService:SetLobbyCameraMode()
+	self:StopDeathCameraMove(false)
+	self:StopFirstPersonCameraHeightOffset()
+	SoundManager:CloseBGM()
+	self:SetCameraMode(CAMERA_MODE_CLASSIC, CAMERA_THIRD_PERSON_MIN_DISTANCE, CAMERA_THIRD_PERSON_MAX_DISTANCE)
+	local camera = WorkSpace.CurrentCamera
+	if not camera then
+		print("BattleService:SetLobbyCameraMode missing CurrentCamera")
+		return
+	end
+	camera.CameraType = Enum.CameraType.Custom
+	local localPlayer = Players.LocalPlayer
+	local character = localPlayer and localPlayer.Character
+	local cameraBindAttachment = character and character:FindFirstChild("CameraBindAttachment")
+	if cameraBindAttachment then
+		camera.CameraSubject = cameraBindAttachment
+	elseif character then
+		camera.CameraSubject = character
+		print("BattleService:SetLobbyCameraMode missing CameraBindAttachment")
+	end
+	GlobalEventManager:Trigger("SetCameraDistance", CAMERA_THIRD_PERSON_DEFAULT_DISTANCE)
+	self:SetPlayerUseCameraAngle(false)
+	MouseService:SetMode(0)
+end
+
+function BattleService:SetBattleCameraMode(characterYaw)
+	self:StopDeathCameraMove(false)
+	self:SetCameraMode(CAMERA_MODE_LOCK_FIRST_PERSON, 0, 0)
+	local camera = WorkSpace.CurrentCamera
+	if not camera then
+		print("BattleService:SetBattleCameraMode missing CurrentCamera")
+		return
+	end
+	camera.CameraType = Enum.CameraType.Custom
+	local localPlayer = Players.LocalPlayer
+	local character = localPlayer and localPlayer.Character
+	if character then
+		camera.CameraSubject = character
+	else
+		print("BattleService:SetBattleCameraMode missing local character")
+	end
+	GlobalEventManager:Trigger("SyncCameraToCharacterYaw", characterYaw)
+	self:SetPlayerUseCameraAngle(true)
+	self:StartFirstPersonCameraHeightOffset()
+end
+
+function BattleService:SetDeathCameraMode(killerId)
+	self:StopDeathCameraMove(false)
+	self:StopFirstPersonCameraHeightOffset()
+	local camera = WorkSpace.CurrentCamera
+	if not camera then
+		print("BattleService:SetDeathCameraMode missing CurrentCamera")
+		return
+	end
+	local killerCharacter = self:GetCharacterByPlayerId(killerId)
+	local cameraBindAttachment = killerCharacter and killerCharacter:FindFirstChild("CameraBindAttachment")
+	if not cameraBindAttachment then
+		print(string.format("BattleService:SetDeathCameraMode missing CameraBindAttachment, killerId=%s", tostring(killerId)))
+		return
+	end
+
+	local targetPos = cameraBindAttachment:GetRenderPosition()
+	local killerBackDirection = GetHorizontalDirection(killerCharacter.Rotation:LookDir())
+	local cameraOffset = camera.Position - targetPos
+	local startDirection = GetHorizontalDirection(cameraOffset)
+	if not killerBackDirection or not startDirection then
+		print(string.format("BattleService:SetDeathCameraMode invalid killer direction, killerId=%s", tostring(killerId)))
+		return
+	end
+
+	camera.CameraType = Enum.CameraType.Scriptable
+	self:SetCameraMode(CAMERA_MODE_CLASSIC, CAMERA_THIRD_PERSON_MIN_DISTANCE, CAMERA_THIRD_PERSON_MAX_DISTANCE)
+	GlobalEventManager:Trigger("SetCameraDistance", CAMERA_THIRD_PERSON_DEFAULT_DISTANCE)
+	self:SetPlayerUseCameraAngle(false)
+	MouseService:SetMode(0)
+
+	local startRadius = math.sqrt(cameraOffset.X * cameraOffset.X + cameraOffset.Z * cameraOffset.Z)
+	local startHeight = cameraOffset.Y
+	local moveToken = {}
+	local elapsed = 0
+	self.deathCameraTween = moveToken
+	self.deathCameraTargetId = killerId
+	RunService:BindToRenderStep(
+		CAMERA_DEATH_RENDER_STEP_NAME,
+		Enum.RenderPriority.Camera.Value + 1,
+		function(dt)
+			if self.deathCameraTween ~= moveToken or self.deathCameraTargetId ~= killerId then
+				return
+			end
+
+			local currentCharacter = self:GetCharacterByPlayerId(killerId)
+			local currentAttachment = currentCharacter and currentCharacter:FindFirstChild("CameraBindAttachment")
+			if currentCharacter ~= killerCharacter or not currentAttachment then
+				self:StopDeathCameraMove(true)
+				print(string.format("[BattleCamera] camera move target became invalid, killerId=%s", tostring(killerId)))
+				return
+			end
+
+			elapsed = math.min(elapsed + dt, CAMERA_DEATH_MOVE_DURATION)
+			local progress = elapsed / CAMERA_DEATH_MOVE_DURATION
+			local remaining = 1 - progress
+			local easedProgress = 1 - remaining * remaining * remaining * remaining
+			local currentTargetPos = currentAttachment:GetRenderPosition()
+			local currentBackDirection = GetHorizontalDirection(currentCharacter.Rotation:LookDir())
+			if not currentBackDirection then
+				self:StopDeathCameraMove(true)
+				return
+			end
+			local orbitDirection = SlerpHorizontalDirection(startDirection, currentBackDirection, easedProgress)
+			local radius = startRadius + (CAMERA_THIRD_PERSON_DEFAULT_DISTANCE - startRadius) * easedProgress
+			local height = startHeight * (1 - easedProgress)
+			camera.Position = currentTargetPos
+				+ orbitDirection * radius
+				+ Vector3.New(0, height, 0)
+
+			local lookDirection = currentTargetPos - camera.Position
+			local _, cameraRotation = Quaternion.LookAt(lookDirection, Vector3.yAxis)
+			camera.Rotation = cameraRotation
+
+			if progress >= 1 then
+				local killerEuler = currentCharacter:GetRenderEuler()
+				local killerYaw = killerEuler and (killerEuler.Y or killerEuler.y)
+				if killerYaw == nil then
+					return
+				end
+				GlobalEventManager:Trigger("SyncCameraToCharacterYaw", killerYaw)
+				self.deathCameraTween = nil
+				self.deathCameraTargetId = nil
+				RunService:UnbindFromRenderStep(CAMERA_DEATH_RENDER_STEP_NAME)
+				camera.CameraSubject = currentAttachment
+				camera.CameraType = Enum.CameraType.Custom
+				print(string.format("[BattleCamera] camera move completed, following killerId=%s", tostring(killerId)))
+			end
+		end
+	)
+end
+
+--发送射击消息
+function BattleService:SendShootReq(blasterId, targetPos)
+	local message = {}
+	message.blasterId = blasterId
+	message.targetPos = targetPos
+	NetMessage:SendRequest(ProtoId.Battle_ShootReq, message)
+end
+
+function BattleService:SendBulletHitReq(blasterId, targetPos, userId, checkType)
+	NetMessage:SendRequest(ProtoId.Battle_BulletHitReq, {
+		blasterId = blasterId,
+		targetPos = targetPos,
+		victimId = userId,
+		checkType = checkType,
+	})
+end
+
+function BattleService:SendMeleeAttackReq(meleeId, attackMode, victimId, checkType, targetPos)
+	NetMessage:SendRequest(ProtoId.Battle_MeleeAttackReq, {
+		meleeId = meleeId,
+		attackMode = attackMode,
+		victimId = victimId,
+		checkType = checkType,
+		targetPos = targetPos,
+	})
+end
+
+function BattleService:SendSelectMapReq(mapId, x, y)
+	NetMessage:SendRequest(ProtoId.Battle_SelectMapReq, {
+		mapId = mapId,
+		x = x or 0,
+		y = y or 0,
+	})
+end
+
+function BattleService:GetLocalBirthPointY()
+	local roundState = self.roundState or {}
+	local mapName = roundState.mapName or "Map1"
+	local mapFolder = WorkSpace:FindFirstChild("MapFolder")
+	local map = mapFolder and mapFolder:FindFirstChild(mapName)
+	local funcFolder = map and map:FindFirstChild("FuncFolder")
+	if not funcFolder then
+		return nil
+	end
+
+	local folderName = FREE_FOR_ALL_BIRTH_FOLDER_NAME
+	if self.battleGameMode ~= GameModeEnum.FreeForAll then
+		folderName = TEAM_BIRTH_FOLDER_NAMES[self.localBattleTeamId]
+	end
+	local birthFolder = folderName and funcFolder:FindFirstChild(folderName)
+	if not birthFolder then
+		return nil
+	end
+
+	local birthPointList = {}
+	for _, birthPoint in ipairs(birthFolder.Children or {}) do
+		if birthPoint.Position then
+			table.insert(birthPointList, birthPoint)
+		end
+	end
+	if #birthPointList == 0 then
+		return nil
+	end
+	local birthPoint = birthPointList[math.random(1, #birthPointList)]
+	return birthPoint.Position.Y or birthPoint.Position.y
+end
+
+function BattleService:SendVoidFallReq()
+	if self.voidFallReqPending then
+		return
+	end
+	self.voidFallReqPending = true
+	NetMessage:SendRequest(ProtoId.Battle_VoidFallReq, {})
+end
+
+function BattleService:CheckVoidFall()
+	if self.voidFallReqPending then
+		return
+	end
+	local localPlayer = Players.LocalPlayer
+	local character = localPlayer and localPlayer.Character
+	if not character or not character.Position then
+		return
+	end
+	local alive = self.player and self.player.SaveDB and self.player.SaveDB:GetDBByKey(SaveDBEnum.IsAlive, true)
+	if alive == false then
+		return
+	end
+	local birthY = self:GetLocalBirthPointY()
+	if not birthY then
+		return
+	end
+	local curY = character.Position.Y or character.Position.y
+	if curY and curY < birthY - VOID_FALL_HEIGHT_DELTA then
+		self:SendVoidFallReq()
+	end
+end
+---------------------------------------------------------------------------------
+
+-- 收到开始战斗响应，补满弹药，关闭大厅打开战斗UI
+function BattleService:StartBattleRsp(player, message)
+	self.isInBattle = true
+	self.player = player
+	self.voidFallReqPending = false
+	SoundManager:PlayBGM(FIGHT_BGM_NAME)
+	SlideManager:EnterBattle()
+	self.integralPingTick = 0
+	self:SetBattleCameraMode(message.spawnYaw)
+	player.EventManager:Trigger("OnEnterBattle_AmmoRefill")
+	local data = {
+		teamId = message.teamId,
+		gameMode = message.gameMode,
+		round = message.round,
+	}
+	self.roundState = message.round or self.roundState
+	self.localBattleTeamId = data.teamId
+	self.battleGameMode = data.gameMode
+	self.playerTeamMap[tonumber(player:GetEntityId())] = data.teamId
+	player.UIManager:CloseUI("SelectMap")
+	player.UIManager:CloseUI("Main")
+	player.UIManager:CloseUI("Common")
+	player.UIManager:LoadUI("Integral", player.UIManager:GetUIConfig("Integral"))
+	player.UIManager:OpenUI("Battle", {teamId = data.teamId})
+	player.UIManager:OpenUI("BattleCountdown", data.round)
+	player.EventManager:Trigger("OnEnterBattle", data)
+	WeaponManager:BlasterAwake()
+	if IsMobilePlatform() then
+		player.UIManager:OpenUI("BattleControl")
+	end
+	self:RefreshEnemyOutlines()
+	self:SendIntegralPingReq()
+end
+
+-- 收到其他玩家开枪的通知，创建子弹视觉
+function BattleService:ShootNotify(player, message)
+	local shooterCharacter = self:GetCharacterByPlayerId(message.playerId)
+	if not shooterCharacter then
+		return
+	end
+
+	local shootPosCube = GetWeaponShootCube(shooterCharacter, message.blasterId)
+	if not shootPosCube then
+		print(string.format("BattleService:ShootNotify missing shoot cube, playerId=%s, blasterId=%s", tostring(message.playerId), tostring(message.blasterId)))
+		return
+	end
+
+	local startPos = shootPosCube.Position
+	local targetPos = message.targetPos
+	local remoteTarget = targetPos--Vector3.New(targetPos[1], targetPos[2], targetPos[3])
+
+	local blasterCfg = ConfigManager.BlasterConfig:GetBlasterConfigById(message.blasterId)
+	if not blasterCfg then
+		return
+	end
+	SoundManager:PlayConfiguredWeaponSound(blasterCfg, "shootSound", startPos, true)
+	BulletsManager:FireRemoteBullet(blasterCfg.bulletId, startPos, remoteTarget)
+end
+
+function BattleService:WeaponMaskAnimationNotify(player, message)
+	player.EventManager:Trigger("WeaponMaskAnimationNotify", message)
+end
+
+-- 收到伤害通知，触发事件供UI显示伤害数字和命中标记
+function BattleService:DamageNotify(player, message)
+	player.EventManager:Trigger("OnDamageNotify", {
+		attackerId = message.attackerId,
+		victimId = message.victimId,
+		damage = message.damage,
+		isHeadshot = message.isHeadshot,
+		isKill = message.isKill,
+		victimHp = message.victimHp,
+		victimMaxHp = message.victimMaxHp,
+	})
+end
+
+-- 收到击杀通知（给杀手）
+function BattleService:HandleKillNotify(player, message)
+	local killerId = message.killerId
+	local victimId = message.victimId
+	local isHeadshot = message.isHeadshot == true
+		or message.isHeadshot == 1
+		or tostring(message.isHeadshot) == "true"
+	local blasterId = message.blasterId
+	local comboCount = message.comboCount
+	PlayerManager:SetNameCache(killerId, message.killerName)
+	PlayerManager:SetNameCache(victimId, message.victimName)
+	if self.deathCameraTween and victimId == self.deathCameraTargetId then
+		self:StopDeathCameraMove(true)
+		print(string.format("[BattleCamera] camera move stopped because killer died, killerId=%s", tostring(victimId)))
+	end
+
+	player.EventManager:Trigger("KillBroadcast", {
+		killerId = killerId,
+		victimId = victimId,
+		isHeadshot = isHeadshot,
+		blasterId = blasterId,
+		comboCount = comboCount,
+	})
+
+	local playerId = player:GetEntityId()
+	self:ApplyPlayerDeathVisual(victimId, message.faceDirection)
+	if killerId == playerId then
+		SoundManager:PlayKillPointsSound(isHeadshot, comboCount)
+		player.EventManager:Trigger("KillNotify", {
+			comboCount = comboCount,
+			isHeadshot = isHeadshot,
+			comboWindow = message.comboWindow,
+			killReward = message.killReward,
+			headshotReward = message.headshotReward,
+			shutdownReward = message.shutdownReward,
+			revengeReward = message.revengeReward,
+			vipReward = message.vipReward,
+			totalReward = message.totalReward,
+			victimLifeStreak = message.victimLifeStreak,
+		})
+	end
+	
+	if victimId == playerId then
+		SlideManager:SetAlive(false)
+		local faceDirection = message.faceDirection
+		local localPlayer = Players.LocalPlayer
+		local character = localPlayer and localPlayer.Character
+		if faceDirection and character then
+			local _, faceRotation = Quaternion.LookAt(faceDirection, Vector3.yAxis)
+			character.Rotation = faceRotation
+		end
+		player.EventManager:Trigger("DieNotify", {
+			killerId = killerId,
+			killerName = message.killerName,
+			killerHeadIcon = message.killerHeadIcon,
+			killerComboCount = comboCount,
+			killerLifeStreak = message.killerLifeStreak,
+			killerMainWeaponId = message.killerMainWeaponId,
+			killerMainWeaponStar = message.killerMainWeaponStar,
+			killerMainWeaponReadOnly = message.killerMainWeaponReadOnly,
+			isHeadshot = isHeadshot,
+			blasterId = blasterId,
+			respawnReadyTime = message.respawnReadyTime,
+		})
+		self:SetDeathCameraMode(killerId)
+		-- local killPlayer = Players:GetPlayerByUserId(killerId)
+		-- if killPlayer then
+		-- end
+		player.UIManager:CloseUI("BattleControl")
+		WeaponManager:DisabledAllWeapons()
+		--将玩家的朝向 面对杀手
+		player.SaveDB:SetDBByKey(SaveDBEnum.IsAlive, false , true)
+	end
+end
+
+-- 收到击杀排行榜同步
+function BattleService:KillRankNotify(player, message)
+	self.killRankData = {
+		roundId = message.roundId,
+		gameMode = message.gameMode,
+		rankList = message.rankList or {},
+		teamScores = message.teamScores or {},
+	}
+	for _, rankInfo in ipairs(self.killRankData.rankList) do
+		PlayerManager:SetNameCache(rankInfo.playerId, rankInfo.playerName)
+	end
+	self.battleGameMode = message.gameMode or self.battleGameMode
+	self:UpdatePlayerTeamMap(self.killRankData.rankList)
+	self:RefreshEnemyOutlines()
+	player.EventManager:Trigger("BattleKillRankUpdate", {
+		roundId = self.killRankData.roundId,
+		gameMode = self.killRankData.gameMode,
+		rankList = self.killRankData.rankList,
+		teamScores = self.killRankData.teamScores,
+	})
+end
+
+-- 收到战斗回合状态同步
+function BattleService:RoundStateNotify(player, message)
+	self.roundState = message
+	if message and message.state ~= ROUND_STATE_SELECT_MAP then
+		player.UIManager:CloseUI("SelectMap")
+	end
+	player.EventManager:Trigger("BattleRoundStateUpdate", message)
+end
+
+function BattleService:RandomChestRewardNotify(player, message)
+	player.UIManager:OpenUI("RandomWeapon", message or {})
+end
+
+function BattleService:MapVoteNotify(player, message)
+	self.mapVoteData = message or {}
+	player.EventManager:Trigger("BattleMapVoteUpdate", self.mapVoteData)
+end
+
+function BattleService:ResultNotify(player, message)
+	self:StopDeathCameraMove(false)
+	self:StopFirstPersonCameraHeightOffset()
+	self.isInBattle = false
+	self.player = nil
+	self.voidFallReqPending = false
+	WeaponManager:DisabledAllWeapons()
+	self:ClearEnemyOutlines()
+	self:SetLobbyCameraMode()
+	player.UIManager:CloseUI("Battle")
+	player.UIManager:CloseUI("BattleControl")
+	player.UIManager:CloseUI("BattleCountdown")
+	player.UIManager:OpenUI("Main")
+	player.UIManager:OpenUI("Common")
+	player.UIManager:OpenUI("BattleResult", {
+		rankChange = message and message.seasonRankChange or nil,
+		rankList = message and message.rankList or {},
+		gameMode = message and message.gameMode or nil,
+	})
+end
+
+function BattleService:KillNotify(player, message)
+	local killList = message.killList or message.list
+	if not killList and message[1] then
+		killList = message
+	end
+	if killList then
+		for _, killVO in ipairs(killList) do
+			self:HandleKillNotify(player, killVO)
+		end
+		return
+	end
+	self:HandleKillNotify(player, message)
+end
+
+function BattleService:VoidFallNotify(player, message)
+	local victimId = message and message.victimId
+	if not victimId then
+		return
+	end
+	self.voidFallReqPending = false
+	self:ApplyPlayerDeathVisual(victimId, nil)
+	if victimId ~= player:GetEntityId() then
+		return
+	end
+	SlideManager:SetAlive(false)
+	player.EventManager:Trigger("DieNotify", {
+		killerId = 0,
+		killerName = "",
+		respawnReadyTime = message.respawnReadyTime,
+	})
+	player.UIManager:CloseUI("BattleControl")
+	WeaponManager:DisabledAllWeapons()
+	player.SaveDB:SetDBByKey(SaveDBEnum.IsAlive, false, true)
+end
+
+function BattleService:GetKillRankData()
+	return self.killRankData
+end
+
+function BattleService:GetRoundState()
+	return self.roundState
+end
+
+function BattleService:GetMapVoteData()
+	return self.mapVoteData or {}
+end
+
+-- 请求复活
+function BattleService:SendReviveReq()
+	NetMessage:SendRequest(ProtoId.Battle_ReviveReq, {})
+end
+
+-- 收到复活响应
+function BattleService:ReviveRsp(player, message)
+	local reviveList = message.reviveList
+	local revivePositions = message.revivePositions or {}
+	for _, playerId in ipairs(reviveList) do
+		local revivePosition = revivePositions[tostring(playerId)] or revivePositions[playerId]
+		if playerId == player:GetEntityId() then
+			player.SaveDB:SetDBByKey(SaveDBEnum.IsAlive, true, true)
+		end
+		self:ApplyPlayerReviveVisual(playerId, revivePosition)
+		player.EventManager:Trigger("ReviveNotify" , playerId)
+		if playerId == player:GetEntityId() then
+			self.voidFallReqPending = false
+			SlideManager:SetAlive(true)
+			self:SetBattleCameraMode(message.reviveYaw)
+			WeaponManager:BlasterAwake(WearBagEnum.Main)
+			if IsMobilePlatform() then
+				player.UIManager:OpenUI("BattleControl")
+			end
+		end
+	end
+end
+
+function BattleService:ExitBattleRsp(player, message)
+	SlideManager:ExitBattle()
+	self.roundState = message and message.round or self.roundState
+	self.deathVisualForceMap = {}
+	self:StopDeathVisualForce()
+	self.isInBattle = false
+	self.player = nil
+	self.voidFallReqPending = false
+	self.localBattleTeamId = nil
+	self.battleGameMode = nil
+	self.playerTeamMap = {}
+	self:ClearEnemyOutlines()
+	self:SetLobbyCameraMode()
+	player.UIManager:CloseUI("Integral")
+	player.UIManager:CloseUI("Battle")
+	player.UIManager:CloseUI("BattleControl")
+	player.UIManager:CloseUI("BattleCountdown")
+	if not (message and message.reason == "RoundEnd") then
+		player.UIManager:CloseUI("BattleResult")
+	end
+	player.UIManager:OpenUI("Main")
+	player.UIManager:OpenUI("Common")
+	player.EventManager:Trigger("OnExitBattle")
+	player.EventManager:Trigger("OnEnterBattle_AmmoRefill")
+end
+
+local Ins = BattleService.New()
+Ins:Init()
+
+return Ins

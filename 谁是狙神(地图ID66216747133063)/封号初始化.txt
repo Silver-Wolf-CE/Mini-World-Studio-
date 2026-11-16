@@ -1,0 +1,106 @@
+local rs = game:GetService("MainStorage")
+-- local RS = game:GetService("RunService")
+-- local tcs = game:GetService("TextChatService")
+
+local GlobalEventManager = require(rs.Scripts.Manager.GlobalEventManager)
+local CMDManager = require(rs.Scripts.Manager.CMDManager)
+
+local NetMessage = require(rs.Scripts.Net.NetMessage)
+local ProtoId = require(rs.Scripts.Net.ProtoId)
+
+local gm = {
+	["additem"] = "GMCommand",
+	["changeskin"] = "GMCommand",
+	["rejoinmap"] = "GMCommand",
+	["unlockmap"] = "GMCommand",
+	["getclientprototimes"] = "GMCommand",
+	["buydevitem"] = "GMCommand",
+	["cleardata"] = "GMCommand",
+	["clearrank"] = "GMCommand",
+	["leavegame"] = "GMCommand",
+	["tptomap"] = "GMCommand",
+	["checkplayerdata"] = "GMCommand",
+	["other"] = "GMCommand",
+	["setskilllv"] = "GMCommand",
+	["settreelv"] = "GMCommand",
+	["allreward"] = "GMCommand",
+	["unlockall"] = "GMCommand",
+	
+	["ban"] = "GMCommand",
+	["unban"] = "GMCommand",
+	["consume"] = "GMCommand",
+
+	["clear"] = "ClearCMDContext",
+	["openui"] = "OpenPlayerUI",
+	["c"] = "OpenCollect",
+}
+
+local ChatManager = require(rs.Scripts.Class)()
+
+function ChatManager:ctor()
+	
+end
+
+function ChatManager:Init()
+	-- if RS:IsStudio() then
+	-- 	tcs.SendingMessage:Connect(function(message)
+	-- 		local array = string.split(message.Text, " ")
+	-- 		local cmd = string.lower(table.remove(array, 1))
+	-- 		local func = gm[cmd]
+	-- 		if not func then return end
+	-- 		local res, ret = shared.Try(self[func], self, cmd, table.unpack(array))
+	-- 	end)
+	-- end
+	GlobalEventManager:SubscribeEvent("OnCMDInput", "ChatManager", function (cmd)
+		local array = string.split(cmd, " ")
+		local cmd = string.lower(table.remove(array, 1))
+        print("cmd  1111111111111  " , cmd)
+		local func = gm[cmd]
+		if not func then return end
+		local res, ret = shared.Try(self[func], self, cmd, table.unpack(array))
+	end)
+end
+
+function ChatManager:GMCommand(cmd, ...)
+	local data = {
+		cmd = cmd,
+		params = {...}
+	}
+
+	NetMessage:SendRequest(ProtoId.GM_GMCommand, data)
+end
+
+function ChatManager:OpenPlayerUI(cmd, ...)
+	local params = {...}
+	local uiName = params[1]
+	if not uiName then
+		return
+	end
+	local player = require(rs.Scripts.Entity.Player)
+	player.UIManager:OpenUI(uiName)
+end
+
+function ChatManager:OpenEvolutionSuccUI(cmd, ...)
+	local params = {...}
+	local animalId = tonumber(params[1])
+	if not animalId then
+		return
+	end
+	local player = require(rs.Scripts.Entity.Player)
+	player.UIManager:OpenUI("EvolutionSucc", animalId)
+end
+
+function ChatManager:ClearCMDContext()
+	CMDManager:Clear()
+end
+
+function ChatManager:OpenCollect()
+	-- local player = require(rs.Scripts.Entity.Player)
+	-- player.UIManager:OpenUI("Collect")
+	-- player.UIManager:CloseUI("CMD")
+end
+
+local Ins = ChatManager.New()
+Ins:Init()
+
+return Ins

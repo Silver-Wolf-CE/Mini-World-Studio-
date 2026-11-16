@@ -1,0 +1,224 @@
+local rs = game:GetService("MainStorage")
+
+--ammo 子弹 recoil 后坐力 magazine 弹匣 fireRate 射速 spread_radius 散弹半径 canAiming 是否可以瞄准 baseDamage 基础伤害 headDamage 爆头伤害 bulletSpeed 子弹速度
+local blasterParam_config = {
+    -- AK47 (粗暴、振幅大、衰减慢、随机性强)
+    -- 全自动，水平模式明显，散步大，近战压制
+    {id=1,ammo=30,reserveAmmo=999,
+     fireShake={pitchAmplitude=2.0,pitchDecayRate=7,pitchFrequency=10,pitchDuration=0.2,yawAmplitude=2.5,yawDecayRate=5,yawFrequency=8,yawDuration=0.25,rollAmplitude=1.2,rollDecayRate=9,rollFrequency=12,rollDuration=0.15,cameraKickPitch=0.25,cameraKickRecovery=10},
+     addRecoil=360,backRecoil=20,maxRecoil=400,weightRadius=0.01,recoilRadius=0.05,recoil=360,magazine=3,fireRate=650,canAiming=false,needBolt=false,boltTime=0.0,isAuto=true,baseDamage=21,headDamage=34,bulletSpeed=300,
+     verticalPerShot=2.0,verticalAccel=0.15,verticalMax=16.0,recoveryDelay=0.1,recoverySpeed=30,
+     horizontalPattern={1,-1,1,1,-1,-1,1,-1},horizontalStrength=0.8,horizontalRandomness=0.3,
+     spreadBase=0.03,spreadPerShot=0.008,spreadMax=0.12,spreadRecovery=5,},
+    -- AK47副手 (略轻于主手)
+    {id=2,ammo=30,reserveAmmo=90,
+     fireShake={pitchAmplitude=1.75,pitchDecayRate=8,pitchFrequency=11,pitchDuration=0.18,yawAmplitude=2.0,yawDecayRate=6,yawFrequency=9,yawDuration=0.22,rollAmplitude=1.0,rollDecayRate=10,rollFrequency=13,rollDuration=0.12,cameraKickPitch=0.15,cameraKickRecovery=12},
+     addRecoil=180,backRecoil=25,maxRecoil=400,weightRadius=0.01,recoilRadius=0.04,recoil=180,magazine=3,fireRate=650,canAiming=false,needBolt=true,boltTime=0.3,isAuto=true,baseDamage=21,headDamage=34,bulletSpeed=300,
+     verticalPerShot=1.8,verticalAccel=0.12,verticalMax=14.0,recoveryDelay=0.08,recoverySpeed=35,
+     horizontalPattern={1,-1,1,-1,1,-1,1,-1},horizontalStrength=0.6,horizontalRandomness=0.25,
+     spreadBase=0.025,spreadPerShot=0.006,spreadMax=0.1,spreadRecovery=6,},
+    -- AWS (重狙、暴力大抬头、恢复慢、水平极稳)
+    -- 栓狙，单发高后坐力，但水平几乎无偏移，需要停下来重新瞄准
+    {id=3,ammo=10,reserveAmmo=30,
+     fireShake={pitchAmplitude=25.0,pitchDecayRate=4,pitchFrequency=7,pitchDuration=0.45,yawAmplitude=25.0,yawDecayRate=3,yawFrequency=5,yawDuration=0.5,rollAmplitude=12.5,rollDecayRate=6,rollFrequency=8,rollDuration=0.35,cameraKickPitch=7.5,cameraKickRecovery=10.0},
+     addRecoil=400,backRecoil=8,maxRecoil=400,weightRadius=0.08,recoilRadius=0.1,recoil=400,magazine=3,fireRate=41,canAiming=true,needBolt=false,boltTime=0.0,isAuto=false,baseDamage=150,headDamage=120,bulletSpeed=300,
+     verticalPerShot=30.0,verticalAccel=0,verticalMax=30.0,recoveryDelay=0.15,recoverySpeed=75.0,
+     horizontalPattern={0,0,0,0},horizontalStrength=0,horizontalRandomness=0.1,
+     spreadBase=0.005,spreadPerShot=0,spreadMax=0.005,spreadRecovery=10,},
+    -- SKS (半自动射手步枪、中等稳定)
+    -- 半自动，每发后坐力中等，水平略偏，精度较好
+    {id=4,ammo=20,reserveAmmo=60,
+     fireShake={pitchAmplitude=1.5,pitchDecayRate=9,pitchFrequency=13,pitchDuration=0.16,yawAmplitude=1.5,yawDecayRate=7,yawFrequency=11,yawDuration=0.2,rollAmplitude=0.8,rollDecayRate=11,rollFrequency=15,rollDuration=0.12,cameraKickPitch=0.4,cameraKickRecovery=8},
+     addRecoil=180,backRecoil=25,maxRecoil=400,weightRadius=0.01,recoilRadius=0.04,recoil=180,magazine=3,fireRate=320,canAiming=false,needBolt=false,boltTime=0.0,isAuto=false,baseDamage=28,headDamage=40,bulletSpeed=300,
+     verticalPerShot=2.5,verticalAccel=0.05,verticalMax=12.0,recoveryDelay=0.1,recoverySpeed=25,
+     horizontalPattern={1,-1,0,0,-1,1},horizontalStrength=0.5,horizontalRandomness=0.2,
+     spreadBase=0.015,spreadPerShot=0.004,spreadMax=0.06,spreadRecovery=7,},
+    -- SVD (狙击步枪、大抬头、比AWS略轻)
+    -- 半自动狙，每发后坐力大，恢复较快，精度极高
+    {id=5,ammo=10,reserveAmmo=50,
+     fireShake={pitchAmplitude=2.5,pitchDecayRate=6,pitchFrequency=9,pitchDuration=0.3,yawAmplitude=2.5,yawDecayRate=5,yawFrequency=7,yawDuration=0.35,rollAmplitude=1.2,rollDecayRate=8,rollFrequency=11,rollDuration=0.2,cameraKickPitch=1.0,cameraKickRecovery=5.0},
+     addRecoil=180,backRecoil=8,maxRecoil=400,weightRadius=0.01,recoilRadius=0.04,recoil=180,magazine=3,fireRate=150,canAiming=true,needBolt=false,boltTime=0.0,isAuto=false,baseDamage=40,headDamage=80,bulletSpeed=300,
+     verticalPerShot=4.0,verticalAccel=0.03,verticalMax=10.0,recoveryDelay=0.2,recoverySpeed=20,
+     horizontalPattern={0,1,-1,0},horizontalStrength=0.3,horizontalRandomness=0.15,
+     spreadBase=0.008,spreadPerShot=0.002,spreadMax=0.03,spreadRecovery=8,},
+}
+
+local blasterParam_map = {}
+
+local function init_blasterParam_config()
+	for index, value in ipairs(blasterParam_config) do
+		blasterParam_map[value.id] = value
+	end
+end
+
+init_blasterParam_config()
+
+local super = require(script.Parent)
+local BlasterParamConfig = require(rs.Scripts.Class)(super)
+
+function BlasterParamConfig:ctor()
+
+end
+
+function BlasterParamConfig:Init()
+
+end
+
+function BlasterParamConfig:GetBlasterParamConfig()
+	return blasterParam_config
+end
+
+function BlasterParamConfig:GetBlasterParamConfigById(id)
+	return blasterParam_map[id or 0]
+end
+
+return BlasterParamConfig
+
+
+
+local MainStorage   = game:GetService("MainStorage")
+local Class         = require(MainStorage.Scripts.Class)
+local BaseFireShake = Class()
+
+--[[
+  三轴震动配置说明:
+  pitch (X轴抬头): 开枪后的抬头抖动
+  yaw   (Y轴摆头): 左右随机摆动
+  roll  (Z轴旋转): 枪身旋转抖动
+
+  每轴参数:
+  amplitude  : 最大振幅(角度)，越大震动越猛
+  decayRate  : 衰减率，越大恢复越快
+  frequency  : 震动频率(Hz)，越大抖动越碎
+  duration   : 持续时间(秒)，控制这一轴震多久
+
+]]
+
+function BaseFireShake:ctor()
+    self.elapsed = 0
+    self.isFiring = false
+    self.pitchRand = 0
+    self.yawRand = 0
+    self.rollRand = 0
+end
+
+function BaseFireShake:Init(fireShake)
+    local cfg = fireShake or {}
+
+    self.pitch = {
+        amplitude = cfg.pitchAmplitude or 3,
+        decayRate = cfg.pitchDecayRate or 8,
+        frequency = cfg.pitchFrequency or 12,
+        duration  = cfg.pitchDuration or 0.15,
+    }
+    self.yaw = {
+        amplitude = cfg.yawAmplitude or 1.5,
+        decayRate = cfg.yawDecayRate or 6,
+        frequency = cfg.yawFrequency or 10,
+        duration  = cfg.yawDuration or 0.2,
+    }
+    self.roll = {
+        amplitude = cfg.rollAmplitude or 0.8,
+        decayRate = cfg.rollDecayRate or 10,
+        frequency = cfg.rollFrequency or 15,
+        duration  = cfg.rollDuration or 0.12,
+    }
+end
+
+function BaseFireShake:OnFire()
+    self.elapsed = 0
+    self.isFiring = true
+
+    -- 每次开枪生成随机种子，让每一枪的抖动都不同
+    self.pitchRand = math.random() * 0.3 - 0.15
+    self.yawRand = math.random() * 0.5 - 0.25
+    self.rollRand = math.random() * 0.4 - 0.2
+end
+
+function BaseFireShake:Update(dt)
+    if not self.isFiring then
+        return
+    end
+
+    self.elapsed = self.elapsed + dt
+    local t = self.elapsed
+
+    local function calcAxis(axis)
+        if t > axis.duration then
+            return 0
+        end
+        local decay = math.exp(-axis.decayRate * t)
+        local wave = math.sin(2 * math.pi * axis.frequency * t)
+        return axis.amplitude * decay * wave * math.rad(1)
+    end
+
+    local function calcAxisPitch(axis)
+        if t > axis.duration then
+            return 0
+        end
+        local decay = math.exp(-axis.decayRate * t)
+        local wave = math.sin(2 * math.pi * axis.frequency * t + self.pitchRand)
+        return axis.amplitude * decay * wave * math.rad(1)
+    end
+
+    local pitchOffset = calcAxisPitch(self.pitch)
+    local yawOffset   = calcAxis(self.yaw)   * (1 + self.yawRand)
+    local rollOffset  = calcAxis(self.roll)  * (1 + self.rollRand)
+
+    if t > math.max(self.pitch.duration, self.yaw.duration, self.roll.duration) then
+        self.isFiring = false
+    end
+
+    return Vector3.New(pitchOffset, yawOffset, rollOffset)
+end
+
+function BaseFireShake:IsFinished()
+    return not self.isFiring
+end
+
+--[[
+============================================================================
+  参考配置参数
+============================================================================
+
+-- 手枪 (轻便、恢复快)
+local pistolShake = {
+    pitchAmplitude = 1.5, pitchDecayRate = 12, pitchFrequency = 14, pitchDuration = 0.1,
+    yawAmplitude   = 0.8, yawDecayRate   = 10, yawFrequency   = 12, yawDuration   = 0.12,
+    rollAmplitude  = 0.4, rollDecayRate  = 14, rollFrequency  = 18, rollDuration  = 0.08,
+}
+
+-- M4A1 (稳定、可控、抖动细腻)
+local m4a1Shake = {
+    pitchAmplitude = 2.5, pitchDecayRate = 10, pitchFrequency = 12, pitchDuration = 0.15,
+    yawAmplitude   = 1.2, yawDecayRate   = 8,  yawFrequency   = 10, yawDuration   = 0.18,
+    rollAmplitude  = 0.6, rollDecayRate  = 12, rollFrequency  = 14, rollDuration  = 0.1,
+}
+
+-- AK47 (粗暴、振幅大、衰减慢、更随机)
+local ak47Shake = {
+    pitchAmplitude = 4.0, pitchDecayRate = 7,  pitchFrequency = 10, pitchDuration = 0.2,
+    yawAmplitude   = 2.5, yawDecayRate   = 5,  yawFrequency   = 8,  yawDuration   = 0.25,
+    rollAmplitude  = 1.2, rollDecayRate  = 9,  rollFrequency  = 12, rollDuration  = 0.15,
+}
+
+-- AWS (AWP) (重狙、大抬头、长恢复、左右摇摆明显)
+local awsShake = {
+    pitchAmplitude = 6.0, pitchDecayRate = 5,  pitchFrequency = 8,  pitchDuration = 0.35,
+    yawAmplitude   = 3.0, yawDecayRate   = 4,  yawFrequency   = 6,  yawDuration   = 0.4,
+    rollAmplitude  = 1.5, rollDecayRate  = 7,  rollFrequency  = 10, rollDuration  = 0.25,
+}
+
+============================================================================
+]]
+
+return BaseFireShake
+ rewardList, CustomEnum.RewardItemType.NewItem)
+	end
+end
+
+local Ins = ShopService.New()
+Ins:Init()
+
+return Ins
+

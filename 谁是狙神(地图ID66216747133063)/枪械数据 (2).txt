@@ -1,0 +1,40 @@
+local rs = game:GetService("MainStorage")
+
+--bulletType 1 是直线子弹 2 是抛物线子弹
+local bullets_config = {
+    --枪
+    {id=1,bulletType=1,speed=30000,scale=1,muzEulerY=90,lifeTime=300,FirePos={},fireName=[[AK_Fire]],trailName=[[AK_Trail]],hitName=[[AK_Hit]]},
+    {id=2,bulletType=1,speed=30000,scale=1,muzEulerY=90,lifeTime=300,FirePos={},fireName=[[AWS_Fire]],trailName=[[AWS_Trail]],hitName=[[AWS_Hit]]},
+    {id=3,bulletType=1,speed=30000,scale=1,muzEulerY=90,lifeTime=300,FirePos={},fireName=[[SKS_Fire]],trailName=[[SKS_Trail]],hitName=[[SKS_Hit]]},
+}
+
+local bullets_map = {}
+
+local function init_bullets_config()
+	for index, value in ipairs(bullets_config) do
+		bullets_map[value.id] = value
+	end
+end
+
+init_bullets_config()
+
+local super = require(script.Parent)
+local BulletEffectConfig = require(rs.Scripts.Class)(super)
+
+function BulletEffectConfig:ctor()
+
+end
+
+function BulletEffectConfig:Init()
+
+end
+
+function BulletEffectConfig:GetBulletEffectConfig()
+	return bullets_config
+end
+
+function BulletEffectConfig:GetBulletEffectConfigById(id)
+	return bullets_map[id or 0]
+end
+
+return BulletEffectConfig

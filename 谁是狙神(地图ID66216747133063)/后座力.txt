@@ -1,0 +1,137 @@
+local MainStorage   = game:GetService("MainStorage")
+local Class         = require(MainStorage.Scripts.Class)
+local Recoil        = Class()
+--[[
+	弹道后坐力系统（三合一）
+
+	1. 垂直后坐力 (Vertical)
+	每发上抬 + 连射递增 + 恢复延迟
+
+	2. 水平后坐力模式 (Horizontal Pattern)
+	预定义左右偏移序列，每发射击按顺序取值，加少量随机扰动
+
+	3. 散步 (Spread)
+	子弹在准星圆内随机偏移，随连射增大
+]]--
+
+function Recoil:ctor()
+    self.shootCount = 0
+    self.verticalRecoil = 0
+    self.patternIndex = 1
+    self.currentSpread = 0
+    self.lastFireTime = 0
+    self.verticalDelta = 0
+end
+
+function Recoil:Init(cfg)
+    cfg = cfg or {}
+
+    -- 垂直后坐力
+    self.verticalPerShot  = cfg.verticalPerShot  or 2.0
+    self.verticalAccel    = cfg.verticalAccel    or 0.15
+    self.verticalMax      = cfg.verticalMax      or 16.0
+
+    -- 恢复
+    self.recoveryDelay    = cfg.recoveryDelay    or 0.1
+    self.recoverySpeed    = cfg.recoverySpeed    or 30
+
+    -- 水平模式
+    self.horizontalPattern   = cfg.horizontalPattern   or {1, -1, 1, 1, -1, -1, 1, -1}
+    self.horizontalStrength  = cfg.horizontalStrength  or 0.8
+    self.horizontalRandomness = cfg.horizontalRandomness or 0.3
+
+    -- 散步
+    self.spreadBase     = cfg.spreadBase     or 0.03
+    self.spreadPerShot  = cfg.spreadPerShot  or 0.008
+    self.spreadMax      = cfg.spreadMax      or 0.12
+    self.spreadRecovery = cfg.spreadRecovery or 5
+
+    -- 初始散步 = 基础散步
+    self.currentSpread = self.spreadBase
+end
+
+-- 每帧调用：恢复后坐力和散步
+function Recoil:Update(dt)
+    local now = TimeSync:GetServerTime()
+    local elapsed = now - self.lastFireTime
+
+    if elapsed > self.recoveryDelay then
+        local recoverTime = elapsed - self.recoveryDelay
+        self.verticalRecoil = math.max(0, self.verticalRecoil - self.recoverySpeed * recoverTime)
+        self.verticalDelta = math.max(0, self.verticalDelta - self.recoverySpeed * recoverTime)
+    end
+
+    self.currentSpread = math.max(self.spreadBase, self.currentSpread - self.spreadRecovery * dt)
+end
+
+-- 开火时调用：累加后坐力
+function Recoil:OnFire()
+    self.lastFireTime = TimeSync:GetServerTime()
+    self.shootCount = self.shootCount + 1
+    if self.shootCount > 50 then
+        self.shootCount = 1
+    end
+
+    local vertical = self.verticalPerShot * (1 + self.shootCount * self.verticalAccel)
+    self.verticalRecoil = math.min(self.verticalRecoil + vertical, self.verticalMax)
+    self.verticalDelta = self.verticalDelta + vertical
+
+    self.currentSpread = math.min(self.currentSpread + self.spreadPerShot, self.spreadMax)
+
+    self.patternIndex = self.patternIndex + 1
+    if self.patternIndex > #self.horizontalPattern then
+        self.patternIndex = 1
+    end
+end
+
+-- 获取当前后坐力缩放比例（用于枪模动画）
+function Recoil:GetRecoilRadiusScale()
+    return math.min(self.verticalDelta / self.verticalMax, 1)
+end
+
+-- 应用后坐力到子弹方向
+-- @param bulletDir Vector3 原始子弹方向（归一化向量）
+-- @return Vector3 被后坐力影响后的子弹方向
+function Recoil:ApplyRecoil(bulletDir)
+    local dir = bulletDir
+
+    -- 1. 垂直后坐力：方向向上抬
+    dir = dir + Vector3.New(0, self.verticalRecoil * 0.01, 0)
+
+    -- 2. 水平后坐力模式
+    local patternValue = self.horizontalPattern[self.patternIndex] or 0
+    local randomJitter = (math.random() - 0.5) * self.horizontalRandomness * 2
+    local horizontalOffset = (patternValue + randomJitter) * self.horizontalStrength * 0.008
+    dir = dir + Vector3.New(0, 0, horizontalOffset)
+
+    -- 3. 散步：在准星圆内随机偏移
+    local spreadAngle = self.currentSpread * math.sqrt(-2 * math.log(math.random()))
+    local spreadDir = math.random() * 2 * math.pi
+    local spreadY = spreadAngle * math.cos(spreadDir)
+    local spreadZ = spreadAngle * math.sin(spreadDir)
+    dir = dir + Vector3.New(0, spreadY, spreadZ)
+
+    return dir
+end
+
+-- 重置后坐力（换弹、切枪时调用）
+function Recoil:Reset()
+    self.shootCount = 0
+    self.verticalRecoil = 0
+    self.verticalDelta = 0
+    self.patternIndex = 1
+    self.currentSpread = self.spreadBase
+    self.lastFireTime = 0
+end
+
+-- 获取当前散步值（用于准星扩散UI）
+function Recoil:GetCurrentSpread()
+    return self.currentSpread
+end
+
+-- 获取当前连射次数
+function Recoil:GetShootCount()
+    return self.shootCount
+end
+
+return Recoil

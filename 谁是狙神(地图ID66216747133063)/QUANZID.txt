@@ -1,0 +1,241 @@
+local rs = game:GetService("MainStorage")
+
+local blaster_config = {
+    -- {id=10001,type=1,switchTime=0.8,reloadTime=3,blasterParamId=1,bulletId=1,Spine="muzzle",cls=[[Blaster_AK47]],cls_camera=[[Blaster_AK47_Camera]],name=[[AK47]],initPos={0,0,0},initEuler={0,0,0},maxPos={4,-1,-6},maxEuler={-6,-4,0},startRunPos={22,-14,0},startRunEuler={-10,-56,0},endRunPos={24,-16,0},endRunEuler={-10,-45,0}},
+    -- {id=10002,type=1,switchTime=0.8,reloadTime=3,blasterParamId=3,bulletId=2,Spine="muzzle",cls=[[Blaster_AWS]],cls_camera=[[Blaster_AWS_Camera]],name=[[AWS]],initPos={20,-42,8},initEuler={0,4,3},maxPos={20,-24,-3},maxEuler={-48,4,3},aimPos={-7.2,-32,-6},aimEuler={0,0,0}},--maxPos={6,-2,-10},maxEuler={-4,5,3}},
+    -- {id=10003,type=1,switchTime=0.8,reloadTime=3,blasterParamId=4,bulletId=3,Spine="muzzle",cls=[[Blaster_SKS]],cls_camera=[[Blaster_SKS_Camera]],name=[[SKS]],initPos={11,-2,4},initEuler={3,3,3},maxPos={3,-4,-22},maxEuler={-6,5,3}},
+    -- {id=10004,type=1,switchTime=0.8,reloadTime=3,blasterParamId=5,bulletId=3,Spine="muzzle",cls=[[Blaster_SVD]],cls_camera=[[Blaster_SVD_Camera]],name=[[SVD]],initPos={11,-2,4},initEuler={3,3,3},maxPos={3,-4,-22},maxEuler={-6,5,3},aimPos={-8,5,4},aimEuler={3,0,0}},
+    -- -- {id=10005,type=1,switchTime=0.8,reloadTime=3,blasterParamId=5,bulletId=3,Spine="muzzle",cls=[[Blaster_SVD]],cls_camera=[[Blaster_SVD_Camera]],name=[[SVD]],initPos={11,-2,4},initEuler={3,3,3},maxPos={3,-4,-22},maxEuler={-6,5,3},aimPos={-8,5,4},aimEuler={3,0,0}},
+    -- {id=20001,type=2,switchTime=0.8,reloadTime=3,blasterParamId=2,bulletId=1,Spine="muzzle",cls=[[Blaster_AK47]],cls_camera=[[Blaster_AK47_Camera]],name=[[AK47]],initPos={11,-2,4},initEuler={3,3,3},maxPos={3,-4,-22},maxEuler={-6,5,3},aimPos={-8,5.3,-6},aimEuler={2,0,0}},--maxPos={6,-2,-10},maxEuler={-4,5,3}},
+
+    --clsType  枪类 比如AWP属于一大类  AK47属于一大类
+    --正式
+
+    --品质6枪
+    {id=101012,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=10000,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[核能科技]],texP=[[sandboxId://UI/Blaster/M24_Positive/2日芒.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1日芒.png]],initPos={-3,-58,-73},initEuler={0,4,0},aimPos={14.76,-49.78,-58},aimEuler={0,4,0},runPos={45.5,-53.2,-42},runEuler={12,-55,-4},battleAttachLocalPosition={0,-62,26},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={7,-26,0},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,0,0},soundFolder=[[HeNengKeJing]],shootSound=[[HNKJShoot]],boltActionSound=[[HNKJBoltAction]],switchSound=[[HNKJSwitch]]},
+    {id=103013,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=10000,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[地狱火]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2地狱火.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1地狱火.png]],initPos={-7.5,-57.2,-79},initEuler={0,6,0},aimPos={12.03,-51.66,-67.9},aimEuler={0,4.39,0},runPos={45.5,-50.2,-46},runEuler={13,-44,-4},battleAttachLocalPosition={0,-59,39},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,8},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,0,0},},
+    {id=105012,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=10000,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[璀璨星光]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2璀璨星空.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1璀璨星空.png]],initPos={0,-59,-74},initEuler={0,2,0},aimPos={16.28,-50.93,-64},aimEuler={0,0,0},runPos={45.5,-50.2,-46},runEuler={13,-44,-4},battleAttachLocalPosition={-11,-69,10},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-13},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+
+    -- M24原皮
+    {id=101001,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24原皮]],texP=[[sandboxId://UI/Blaster/M24_Positive/2M24.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1M24.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101002,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_迷彩]],texP=[[sandboxId://UI/Blaster/M24_Positive/2迷彩.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1迷彩.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101003,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_水墨]],texP=[[sandboxId://UI/Blaster/M24_Positive/2水墨.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1水墨.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101004,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_碳钎维]],texP=[[sandboxId://UI/Blaster/M24_Positive/2碳纤维.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1碳纤维.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101005,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_天空]],texP=[[sandboxId://UI/Blaster/M24_Positive/2天空.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1天空.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101006,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_涂鸦]],texP=[[sandboxId://UI/Blaster/M24_Positive/2涂鸦.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1涂鸦.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101007,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_紫罗兰]],texP=[[sandboxId://UI/Blaster/M24_Positive/2紫罗兰.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1紫罗兰.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101008,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_星星]],texP=[[sandboxId://UI/Blaster/M24_Positive/2星星.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1星星.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101009,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_花纹]],texP=[[sandboxId://UI/Blaster/M24_Positive/2花纹.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1花纹.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101010,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_花纹1]],texP=[[sandboxId://UI/Blaster/M24_Positive/2花纹1.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1花纹1.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+    {id=101011,type=1,clsType=1,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1500,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M24_中国红]],texP=[[sandboxId://UI/Blaster/M24_Positive/2中国红.png]],texO=[[sandboxId://UI/Blaster/M24_Oblique/1中国红.png]],initPos={-4.5,-65.2,-36},initEuler={0,0,0},aimPos={12.62,-59.68,-25},aimEuler={0,0,0},runPos={11,-69,-21},runEuler={11,-38,3},battleAttachLocalPosition={0,-75,19},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,-20},backWeaponLocalEuler={0,234,-90},showLocalPosition={0,-17,0}},
+
+    -- 98K原皮
+    {id=102001,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone005",Scope="Bone006"  ,value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K原皮]],texP=[[sandboxId://UI/Blaster/98K_Positive/2原皮.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1原皮.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102002,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_星星]],texP=[[sandboxId://UI/Blaster/98K_Positive/2星星.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1星星.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102003,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_水墨]],texP=[[sandboxId://UI/Blaster/98K_Positive/2水墨.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1水墨.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102004,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_油画]],texP=[[sandboxId://UI/Blaster/98K_Positive/2油画.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1油画.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102005,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_碳纤维]],texP=[[sandboxId://UI/Blaster/98K_Positive/2碳纤维.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1碳纤维.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102006,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_涂鸦]],texP=[[sandboxId://UI/Blaster/98K_Positive/2涂鸦.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1涂鸦.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102007,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_青空]],texP=[[sandboxId://UI/Blaster/98K_Positive/2晴空.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1晴空.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102008,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_迷彩]],texP=[[sandboxId://UI/Blaster/98K_Positive/2迷彩.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1迷彩.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102009,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_花纹]],texP=[[sandboxId://UI/Blaster/98K_Positive/2花纹.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1花纹.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102010,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]], name=[[98K_美国]],texP=[[sandboxId://UI/Blaster/98K_Positive/2美国.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1美国.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=102011,type=2,clsType=2,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[98K_漫画]],texP=[[sandboxId://UI/Blaster/98K_Positive/2漫画.png]],texO=[[sandboxId://UI/Blaster/98K_Oblique/1漫画.png]],initPos={-3,-64,-32},initEuler={0,2,0},aimPos={13.3,-59.13,-24.2},aimEuler={0,0,0},runPos={10,-67,-20},runEuler={10,-36,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+
+    -- AWP原皮
+    {id=103001,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP原皮]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2原皮.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1原皮.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103002,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_渐变]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2渐变.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1渐变.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103003,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_涂鸦]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2涂鸦.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1涂鸦.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103004,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_中国红]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2中国红.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1中国红.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103005,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_紫罗兰]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2紫罗兰.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1紫罗兰.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103006,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_竞技]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2竞技.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1竞技.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103007,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_旧日]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2旧日.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1旧日.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103008,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_迷彩]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2迷彩.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1迷彩.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103009,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_炫紫]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2炫紫.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1炫紫.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103010,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_白猫]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2白猫.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1白猫.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103011,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_废土]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2废土.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1废土.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=103012,type=3,clsType=3,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=3000,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[AWP_金]],texP=[[sandboxId://UI/Blaster/AWP_Positive/2黑金.png]],texO=[[sandboxId://UI/Blaster/AWP_Oblique/1黑金.png]],initPos={-3,-51,-29},initEuler={0,-1,0},aimPos={14.35,-45.39,-19.8},aimEuler={0,0,0},runPos={6,-55,-13},runEuler={12,-42,0},battleAttachLocalPosition={0,-58,32},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    
+    -- M200原皮
+    {id=104001,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200原皮]],texP=[[sandboxId://UI/Blaster/M200_Positive/2原皮.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1原皮.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104002,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_水墨]],texP=[[sandboxId://UI/Blaster/M200_Positive/2水墨.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1水墨.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104003,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_迷彩]],texP=[[sandboxId://UI/Blaster/M200_Positive/2迷彩.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1迷彩.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104004,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_斜杠]],texP=[[sandboxId://UI/Blaster/M200_Positive/2斜杠.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1斜杠.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104005,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_星星]],texP=[[sandboxId://UI/Blaster/M200_Positive/2星星.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1星星.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104006,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_侏罗纪]],texP=[[sandboxId://UI/Blaster/M200_Positive/2龙.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1龙.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104007,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_圣诞]],texP=[[sandboxId://UI/Blaster/M200_Positive/2圣诞.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1圣诞.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104008,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_鹰]],texP=[[sandboxId://UI/Blaster/M200_Positive/2鹰.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1鹰.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104009,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_漫画]],texP=[[sandboxId://UI/Blaster/M200_Positive/2漫画.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1漫画.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104010,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_骑士]],texP=[[sandboxId://UI/Blaster/M200_Positive/2骑士.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1骑士.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=104011,type=4,clsType=4,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M200_樱花]],texP=[[sandboxId://UI/Blaster/M200_Positive/2樱花.png]],texO=[[sandboxId://UI/Blaster/M200_Oblique/1樱花.png]],initPos={0,-56,-80},initEuler={0,0,0},aimPos={16.64,-51.32,-70.4},aimEuler={0,0,0},runPos={42,-50,-50},runEuler={11,-39,3},battleAttachLocalPosition={0,-58,35},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+
+    -- M82a1原皮
+    {id=105001,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1原皮]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2原皮.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1原皮.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105002,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_水墨]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2水晶.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1水晶.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105003,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_涂鸦]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2美国.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1涂鸦.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105004,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=300,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_花纹]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2花纹.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1花纹.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105005,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_英国]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2英国.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1英国.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105006,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=600,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_星星]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2星星.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1星星.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105007,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_野战]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2野战.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1野战.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105008,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=800,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_斜杠]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2斜杠.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1斜杠.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105009,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_美国]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2涂鸦.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1美国.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105010,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_青空]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2青空.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1青空.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+    {id=105011,type=5,clsType=5,switchTime=1.1,reloadTime=3.3,blasterParamId=3,bulletId=2,Spine="Bone0052",Scope="Bone0112",value=1200,cls=[[Blaster_AWP]],cls_camera=[[Blaster_AWP_Camera]],name=[[M82a1_沙漠]],texP=[[sandboxId://UI/Blaster/Barrett_Positive/2沙漠.png]],texO=[[sandboxId://UI/Blaster/Barrett_Oblique/1沙漠.png]],initPos={0,-56,-76},initEuler={0,0,0},aimPos={16.54,-51,-67.25},aimEuler={0,0,0},runPos={38,-52,-47},runEuler={11,-39,3},battleAttachLocalPosition={0,-55,41},battleAttachLocalEuler={0,180,0},backWeaponLocalPosition={20,-21,4},backWeaponLocalEuler={0,234,-90}},
+}
+
+local blaster_map = {}
+local clsList_map = {}
+local default_sound_config = {
+    soundType = "Blaster",
+    soundFolder = "AWP",
+    switchSound = "SwitchGun",
+    shootSound = "AWPShoot",
+    reloadSound = "AWPReload",
+    boltActionSound = "AWPBoltAction",
+}
+
+local function init_blaster_config()
+	for index, value in ipairs(blaster_config) do
+		for soundKey, soundValue in pairs(default_sound_config) do
+			if value[soundKey] == nil then
+				value[soundKey] = soundValue
+			end
+		end
+		blaster_map[value.id] = value
+		if not clsList_map[value.clsType] then
+			clsList_map[value.clsType] = {}
+		end
+		table.insert(clsList_map[value.clsType] , value)
+	end
+end
+
+init_blaster_config()
+
+local super = require(script.Parent)
+local BlasterConfig = require(rs.Scripts.Class)(super)
+
+function BlasterConfig:ctor()
+
+end
+
+function BlasterConfig:Init()
+
+end
+
+function BlasterConfig:GetBlasterConfig()
+	return blaster_config
+end
+
+function BlasterConfig:GetBlasterConfigById(id)
+	return blaster_map[id or 0]
+end
+
+--根据clsType获取对应的BlasterConfig
+function BlasterConfig:GetBlasterConfigByClsType(clsType)
+    return clsList_map[clsType] or {}
+end
+
+return BlasterConfig
+
+
+
+
+
+
+
+
+
+
+
+libSandboxEngine.dll+7FFB10 - 55                    - push ebp
+libSandboxEngine.dll+7FFB11 - 8B EC                 - mov ebp,esp
+libSandboxEngine.dll+7FFB13 - 6A FF                 - push -01
+libSandboxEngine.dll+7FFB15 - 68 9DDAA66F           - push libSandboxEngine.dll+121DA9D
+libSandboxEngine.dll+7FFB1A - 64 A1 00000000        - mov eax,fs:[00000000]
+libSandboxEngine.dll+7FFB20 - 50                    - push eax
+libSandboxEngine.dll+7FFB21 - 83 EC 24              - sub esp,24
+libSandboxEngine.dll+7FFB24 - A1 64500E70           - mov eax,[libSandboxEngine.dll+1895064]
+libSandboxEngine.dll+7FFB29 - 33 C5                 - xor eax,ebp
+libSandboxEngine.dll+7FFB2B - 89 45 F0              - mov [ebp-10],eax
+libSandboxEngine.dll+7FFB2E - 56                    - push esi
+libSandboxEngine.dll+7FFB2F - 57                    - push edi
+libSandboxEngine.dll+7FFB30 - 50                    - push eax
+libSandboxEngine.dll+7FFB31 - 8D 45 F4              - lea eax,[ebp-0C]
+libSandboxEngine.dll+7FFB34 - 64 A3 00000000        - mov fs:[00000000],eax
+libSandboxEngine.dll+7FFB3A - 8B F1                 - mov esi,ecx
+libSandboxEngine.dll+7FFB3C - 8B 7D 08              - mov edi,[ebp+08]
+libSandboxEngine.dll+7FFB3F - 6A 00                 - push 00
+libSandboxEngine.dll+7FFB41 - C7 45 D4 00000000     - mov [ebp-2C],00000000
+libSandboxEngine.dll+7FFB48 - E8 63710000           - call libSandboxEngine.dll+806CB0
+libSandboxEngine.dll+7FFB4D - FF 75 0C              - push [ebp+0C]
+libSandboxEngine.dll+7FFB50 - 8D 4D D4              - lea ecx,[ebp-2C]
+libSandboxEngine.dll+7FFB53 - 57                    - push edi
+libSandboxEngine.dll+7FFB54 - 8B 40 28              - mov eax,[eax+28]
+libSandboxEngine.dll+7FFB57 - 51                    - push ecx
+libSandboxEngine.dll+7FFB58 - FF D0                 - call eax
+libSandboxEngine.dll+7FFB5A - 83 C4 10              - add esp,10
+libSandboxEngine.dll+7FFB5D - 84 C0                 - test al,al
+libSandboxEngine.dll+7FFB5F - 74 51                 - je libSandboxEngine.dll+7FFBB2
+libSandboxEngine.dll+7FFB61 - 8B 55 D4              - mov edx,[ebp-2C]
+libSandboxEngine.dll+7FFB64 - 85 D2                 - test edx,edx
+libSandboxEngine.dll+7FFB66 - 74 4A                 - je libSandboxEngine.dll+7FFBB2
+libSandboxEngine.dll+7FFB68 - 8B 86 80000000        - mov eax,[esi+00000080]
+libSandboxEngine.dll+7FFB6E - 48                    - dec eax
+libSandboxEngine.dll+7FFB6F - 83 F8 04              - cmp eax,04
+libSandboxEngine.dll+7FFB72 - 0F87 92000000         - ja libSandboxEngine.dll+7FFC0A
+libSandboxEngine.dll+7FFB78 - FF 24 85 2CFC046F     - jmp dword ptr [eax*4+libSandboxEngine.dll+7FFC2C]
+libSandboxEngine.dll+7FFB7F - 8B 8E 8C000000        - mov ecx,[esi+0000008C]
+libSandboxEngine.dll+7FFB85 - 8B 86 88000000        - mov eax,[esi+00000088]
+libSandboxEngine.dll+7FFB8B - 03 CA                 - add ecx,edx
+libSandboxEngine.dll+7FFB8D - FF D0                 - call eax
+libSandboxEngine.dll+7FFB8F - EB 79                 - jmp libSandboxEngine.dll+7FFC0A
+libSandboxEngine.dll+7FFB91 - 8B 8E 8C000000        - mov ecx,[esi+0000008C]
+libSandboxEngine.dll+7FFB97 - 8B 86 88000000        - mov eax,[esi+00000088]
+libSandboxEngine.dll+7FFB9D - 03 CA                 - add ecx,edx
+libSandboxEngine.dll+7FFB9F - 57                    - push edi
+libSandboxEngine.dll+7FFBA0 - FF D0                 - call eax
+libSandboxEngine.dll+7FFBA2 - EB 68                 - jmp libSandboxEngine.dll+7FFC0C
+libSandboxEngine.dll+7FFBA4 - 8B 86 88000000        - mov eax,[esi+00000088]
+libSandboxEngine.dll+7FFBAA - 52                    - push edx
+libSandboxEngine.dll+7FFBAB - FF D0                 - call eax
+libSandboxEngine.dll+7FFBAD - 83 C4 04              - add esp,04
+libSandboxEngine.dll+7FFBB0 - EB 58                 - jmp libSandboxEngine.dll+7FFC0A
+libSandboxEngine.dll+7FFBB2 - 8B 4E 34              - mov ecx,[esi+34]
+libSandboxEngine.dll+7FFBB5 - 85 C9                 - test ecx,ecx
+libSandboxEngine.dll+7FFBB7 - 74 0B                 - je libSandboxEngine.dll+7FFBC4
+libSandboxEngine.dll+7FFBB9 - FF 75 0C              - push [ebp+0C]
+libSandboxEngine.dll+7FFBBC - 8B 01                 - mov eax,[ecx]
+libSandboxEngine.dll+7FFBBE - 57                    - push edi
+libSandboxEngine.dll+7FFBBF - FF 50 40              - call dword ptr [eax+40]
+libSandboxEngine.dll+7FFBC2 - EB 48                 - jmp libSandboxEngine.dll+7FFC0C
+libSandboxEngine.dll+7FFBC4 - 68 20B42C70           - push libSandboxEngine.dll+1A7B420
+libSandboxEngine.dll+7FFBC9 - 68 847F0E70           - push libSandboxEngine.dll+1897F84
+libSandboxEngine.dll+7FFBCE - E8 1987A100           - call libSandboxEngine.dll+12182EC
+libSandboxEngine.dll+7FFBD3 - 83 C4 08              - add esp,08
+libSandboxEngine.dll+7FFBD6 - 89 45 D0              - mov [ebp-30],eax
+libSandboxEngine.dll+7FFBD9 - 8D 45 D0              - lea eax,[ebp-30]
+libSandboxEngine.dll+7FFBDC - 68 A02ABF6F           - push libSandboxEngine.dll+13A2AA0
+libSandboxEngine.dll+7FFBE1 - 50                    - push eax
+libSandboxEngine.dll+7FFBE2 - 68 A42ABF6F           - push libSandboxEngine.dll+13A2AA4
+libSandboxEngine.dll+7FFBE7 - 8D 45 D8              - lea eax,[ebp-28]
+libSandboxEngine.dll+7FFBEA - 50                    - push eax
+libSandboxEngine.dll+7FFBEB - E8 908ED1FF           - call libSandboxEngine.dll+518A80
+libSandboxEngine.dll+7FFBF0 - 50                    - push eax
+libSandboxEngine.dll+7FFBF1 - 57                    - push edi
+libSandboxEngine.dll+7FFBF2 - C7 45 FC 00000000     - mov [ebp-04],00000000
+libSandboxEngine.dll+7FFBF9 - FF 15 48E0BC6F        - call dword ptr [libSandboxEngine.dll+137E048]
+libSandboxEngine.dll+7FFBFF - 83 C4 08              - add esp,08
+libSandboxEngine.dll+7FFC02 - 8D 4D D8              - lea ecx,[ebp-28]
+libSandboxEngine.dll+7FFC05 - E8 06F2BAFF           - call libSandboxEngine.dll+3AEE10
+libSandboxEngine.dll+7FFC0A - 33 C0                 - xor eax,eax
+libSandboxEngine.dll+7FFC0C - 8B 4D F4              - mov ecx,[ebp-0C]
+libSandboxEngine.dll+7FFC0F - 64 89 0D 00000000     - mov fs:[00000000],ecx
+libSandboxEngine.dll+7FFC16 - 59                    - pop ecx
+libSandboxEngine.dll+7FFC17 - 5F                    - pop edi
+libSandboxEngine.dll+7FFC18 - 5E                    - pop esi
+libSandboxEngine.dll+7FFC19 - 8B 4D F0              - mov ecx,[ebp-10]
+libSandboxEngine.dll+7FFC1C - 33 CD                 - xor ecx,ebp
+libSandboxEngine.dll+7FFC1E - E8 1770A100           - call libSandboxEngine.dll+1216C3A
+libSandboxEngine.dll+7FFC23 - 8B E5                 - mov esp,ebp
+libSandboxEngine.dll+7FFC25 - 5D                    - pop ebp
+libSandboxEngine.dll+7FFC26 - C2 0800               - ret 0008

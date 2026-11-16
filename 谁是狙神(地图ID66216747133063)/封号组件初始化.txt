@@ -1,0 +1,121 @@
+local RunService = game:GetService("RunService")
+local IsStudio = RunService:IsStudio()
+
+if RunService:IsClient() then
+	IsStudio = RunService:IsStudio()
+elseif RunService:IsServer() then
+	IsStudio = RunService:GetAppPlatformName() == "PC"
+end
+
+CONST = {
+	-- 是否是编辑器
+	IsStudio = IsStudio,
+	DataBaseKey = "PlayerSaveData5_%s",
+
+	IsSave = false,
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	--|-----------------------------------------|
+	--| 	玩家数据禁止数字key和字符串key混用	|
+	--| 	禁止不连续数字key					|
+	--| 	禁止CFrame,Vector3					|
+	--|     数据库不支持			            	|
+	--|-----------------------------------------|
+	-- Buff 模块嵌入到Entity内部创建,这里不在添加
+	ServerPlayerModule = {
+		"SaveDB",
+		"Detail",
+		"Bag",
+		"Turntable",
+		"ExclusivesPack",
+		"Code",
+		"SignIn",
+		"OnLine",
+		"WearBag",
+		"State",
+		"DailyTask",
+		"WeeklyTask",
+		"Season",
+		"Chest",
+	},
+	ClienPlayerModule = {
+		"SaveDB",
+		"Detail",
+		"Bag",
+		"Turntable",
+		"SignIn",
+		"OnLine",
+		"WearBag",
+		"State",
+		"DailyTask",
+		"WeeklyTask",
+		"Season",
+		"Chest",
+	},
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	-- Buff模块嵌入Entity内部创建,单独计算属性
+	PropModule = {
+		-- "WearBag",
+		-- "Ride",
+		-- "Pet",
+	},
+	PropRateAddNum		= 100,
+	BaseSpeed = 600,
+	ShowMobileBattleControlInEditor = false,
+	StudioAIHitPlayerNoDamage = false,
+	EnableAI = true,
+	ReadOnlyMeleeWeaponId = 201001,
+	KillRandomChestReward = {
+		ChestId = 101,
+		DailyMaxCount = 8,
+		RateList = {0.2, 0.15, 0.1, 0.05, 0.03, 0.025, 0.02, 0.015},
+	},
+	AimAssistEnableInPC = true, -- 是否允许PC端也启用辅助瞄准；false时只在非PC平台生效。
+	AimAssist = {
+		BodyLockAngle = 1,-- 开镜跟随：准星与敌人BodyCheck夹角小于该值时，才允许锁定身体。
+		FaceLockAngle = 0.5, -- 开镜跟随：准星与敌人FaceCheck夹角小于该值时，优先锁头。
+		HoldAngle = 5.33, -- 开镜跟随：已经锁定后允许保持跟随的最大夹角，超过会断锁。
+		FollowSpeed = 16, -- 开镜跟随：镜头追向目标的速度倍率，越大跟得越紧。
+		MaxSpeed = 180, -- 开镜跟随：每秒最大修正角速度，防止瞬间甩镜过猛。
+		SnapAngle = 0, -- 开镜跟随：夹角小于该值时直接贴到目标；0表示不启用瞬间吸附。
+		ManualBreakInput = 6, -- 开镜跟随：玩家横向手动转镜输入超过该值时，短暂打断锁定。
+		HitCompensationEnabled = true, -- 命中补偿：视觉上接近敌人但射线没打中时，是否允许按夹角补一次命中。
+		BodyHitAngle = 2, -- 开镜命中补偿：身体补偿命中的最大夹角，优先身体。
+		FaceHitAngle = 1, -- 开镜命中补偿：头部补偿命中的最大夹角。
+		NoScopeBodyHitAngle = 2, -- 非开镜命中补偿：身体补偿命中的最大夹角，只修正命中，不跟随镜头。
+		NoScopeFaceHitAngle = 1, -- 非开镜命中补偿：头部补偿命中的最大夹角，只修正命中，不跟随镜头。
+	},
+	-- 调试控制
+	DebugDefine = {
+		DebugNetMessage = false, -- IsStudio and true or false,       -- 是.否调试网络消息
+	},
+
+	CoinID 		    = 1,				--金币
+	TrophyID 		= 2,				--奖杯
+	-- 赛季起始配置：2027 年 7 月为第 1 赛季，之后每跨一个自然月赛季号 +1。
+	SeasonDefine = {
+		StartYear = 2026,
+		StartMonth = 7,
+		StartSeasonId = 1,
+	},
+
+	BagSize = 100,
+	UpdateVersion = 2,		--更新公告
+	MAPID = 66216747133063,		--地图id
+
+	BlackIDMapKey = "PlayerBlackIdMap",
+
+	CameraFOV = 75,--相机FOV
+
+	-- 初始化灵敏灵敏度  
+	InitCameraSensitivitySpeed = 55,
+	-- 初始化开镜灵敏度
+	InitADSSensitivitySpeed = 55,
+
+	PlayerMaxHp = 100,	--玩家最大血量
+}
+
+return CONST

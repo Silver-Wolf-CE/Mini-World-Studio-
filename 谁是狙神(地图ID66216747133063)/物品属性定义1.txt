@@ -1,0 +1,188 @@
+local creatureConfig = {
+	{id = 1001, animList = {ModelRes = [[sandboxId://Model/Monster/Bobritto_Bandito/Bobritto bandito_idle/Bobritto bandito_idle.prefab]], AnimatorRes = [[sandboxId://Model/Monster/Bobritto_Bandito/Bobritto_Bandito.controller]]}},
+	{id = 1002, animList = {ModelRes = [[sandboxId://Model/Monster/Linguicine_Serpentine/Linguicine Serpentine_idle/Linguicine Serpentine_idle.prefab]], AnimatorRes = [[sandboxId://Model/Monster/Linguicine_Serpentine/Linguicine_Serpentine.controller]]}},
+	{id = 5001, animList = {ModelRes = [[sandboxId://Model/Boss/Z_Palu_102/Z_Palu_102_idle/Z_Palu_102_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/Z_Palu_102/Z_Palu_102.controller]]}},
+	{id = 5002, animList = {ModelRes = [[sandboxId://Model/Boss/Z_Palu_062/Z_Palu_062_idle/Z_Palu_062_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/Z_Palu_062/Z_Palu_062.controller]]}},
+	{id = 5003, animList = {ModelRes = [[sandboxId://Model/Boss/Z_Palu_068/Z_Palu_068_idle/Z_Palu_068_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/Z_Palu_068/Z_Palu_068.controller]]}},
+	{id = 5004, animList = {ModelRes = [[sandboxId://Model/Boss/Z_Palu_082/Z_Palu_082_idle/Z_Palu_082_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/Z_Palu_082/Z_Palu_082.controller]]}},
+	{id = 5005, animList = {ModelRes = [[sandboxId://Model/Boss/Z_Palu_083/Z_Palu_083_idle/Z_Palu_083_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/Z_Palu_083/Z_Palu_83.controller]]}},
+	{id = 5006, animList = {ModelRes = [[sandboxId://Model/Horse/SK_PolarDragon/SK_PolarDragon.prefab]], AnimatorRes = [[sandboxId://Model/Horse/SK_PolarDragon/SK_PolarDragon.controller]]}},
+	{id = 5007, animList = {ModelRes = [[sandboxId://Model/Horse/BAIHU/baihu_idle_1/baihu_idle.prefab]], AnimatorRes = [[sandboxId://Model/Horse/BAIHU/baihu_battle.controller]]}},
+	{id = 5008, animList = {ModelRes = [[sandboxId://Model/Boss/zq_long_idle/zq_long_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/zq_long_idle/BOSS_LONG.controller]]}},
+	{id = 5009, animList = {ModelRes = [[sandboxId://Model/Boss/bingchilong_idle/bingchilong_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/bingchilong_idle/bingchilong_battle.controller]]}},
+	{id = 5010, animList = {ModelRes = [[sandboxId://Model/Boss/ziseshizi_idle/ziseshizi_idle/ziseshizi_idle.prefab]], AnimatorRes = [[sandboxId://Model/Boss/ziseshizi_idle/ziseshizi_battle.controller]]}},
+	
+	-- {id = 8001, animList = {ModelRes = [[]], AnimatorRes = [[]]}},
+	{id = 8001, animList = {ModelRes = [[sandboxId://Model/Boss/danshoufu/danshoufu/danshoufu.prefab]], AnimatorRes = [[sandboxId://Model/Boss/danshoufu/danshoufu.controller]]}},
+	{id = 8002, animList = {ModelRes = [[sandboxId://Model/Boss/liuxingchui/liuxingchui.prefab]], AnimatorRes = [[sandboxId://Model/Boss/liuxingchui/liuxingchui.controller]]}},
+	{id = 8003, animList = {ModelRes = [[sandboxId://Model/Boss/jufu/jufu.prefab]], AnimatorRes = [[sandboxId://Model/Boss/jufu/jufu.controller]]}},
+	{id = 8004, animList = {ModelRes = [[sandboxId://Model/Boss/qingsexiyi/qingsexiyi.prefab]], AnimatorRes = [[sandboxId://Model/Boss/qingsexiyi/qingsexiyi.controller]]}},
+	{id = 8005, animList = {ModelRes = [[sandboxId://Model/Boss/baixiong/baixiong.prefab]], AnimatorRes = [[sandboxId://Model/Boss/baixiong/baixiong.controller]]}},
+	{id = 8006, animList = {ModelRes = [[sandboxId://Model/Boss/sishen/sishen.prefab]], AnimatorRes = [[sandboxId://Model/Boss/sishen/sishen.controller]]}},
+	{id = 8007, animList = {ModelRes = [[sandboxId://Model/Boss/qingsezoudilong/qingsezoudilong.prefab]], AnimatorRes = [[sandboxId://Model/Boss/qingsezoudilong/qingsezoudilong.controller]]}},
+	{id = 8008, animList = {ModelRes = [[sandboxId://Model/Boss/zhuzi_mo/zhuzi_mo.prefab]], AnimatorRes = [[sandboxId://Model/Boss/zhuzi_mo/zhuzi_mo.controller]]}},
+	{id = 8009, animList = {ModelRes = [[sandboxId://Model/Boss/zise_mo/zise_mo.prefab]], AnimatorRes = [[sandboxId://Model/Boss/zise_mo/zise_mo.controller]]}},
+	{id = 8010, animList = {ModelRes = [[sandboxId://Model/Boss/zise_chimo/zise_chimo.prefab]], AnimatorRes = [[sandboxId://Model/Boss/zise_chimo/zise_chimo.controller]]}},
+	{id = 8011, animList = {ModelRes = [[sandboxId://Model/Boss/zhizhunvwang_01/zhizhunvwang_01.prefab]], AnimatorRes = [[sandboxId://Model/Boss/zhizhunvwang_01/zhizhunvwang.controller]]}},
+	{id = 8012, animList = {ModelRes = [[sandboxId://Model/Boss/zhizhunvwang_02/zhizhunvwang_02.prefab]], AnimatorRes = [[sandboxId://Model/Boss/zhizhunvwang_01/zhizhunvwang.controller]]}},
+	{id = 8013, animList = {ModelRes = [[sandboxId://Model/Boss/mohua/mohua.prefab]], AnimatorRes = [[sandboxId://Model/Boss/mohua/mohua.controller]]}},
+	{id = 8014, animList = {ModelRes = [[sandboxId://Model/Boss/shijiu/shijiu.prefab]], AnimatorRes = [[sandboxId://Model/Boss/shijiu/shijiu.controller]]}},
+	{id = 8015, animList = {ModelRes = [[sandboxId://Model/Boss/shijiu_02/shijiu_02.prefab]], AnimatorRes = [[sandboxId://Model/Boss/shijiu/shijiu.controller]]}},
+
+	--近战
+	{id = 10001, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_woniu_01/jinzhan_woniu_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_woniu_01/jinzhan_woniu.controller]]}},
+	{id = 10002, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_woniu_02/jinzhan_woniu_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_woniu_01/jinzhan_woniu.controller]]}},
+	{id = 10003, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_woniu_03/jinzhan_woniu_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_woniu_01/jinzhan_woniu.controller]]}},
+	{id = 10004, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_woniu_04/jinzhan_woniu_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_woniu_01/jinzhan_woniu.controller]]}},
+	{id = 10005, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_pangxie_01/jinzhan_pangxie_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_pangxie_01/jinzhan_pangxie.controller]]}},
+	{id = 10006, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_pangxie_02/jinzhan_pangxie_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_pangxie_01/jinzhan_pangxie.controller]]}},
+	{id = 10007, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_pangxie_03/jinzhan_pangxie_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_pangxie_01/jinzhan_pangxie.controller]]}},
+	{id = 10008, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_pangxie_04/jinzhan_pangxie_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_pangxie_01/jinzhan_pangxie.controller]]}},
+	{id = 10009, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_hama_01/jinzhan_hama_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_hama_01/jinzhan_hama_01.controller]]}},
+	{id = 10010, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_hama_02/jinzhan_hama_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_hama_01/jinzhan_hama_01.controller]]}},
+	{id = 10011, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_hama_03/jinzhan_hama_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_hama_01/jinzhan_hama_01.controller]]}},
+	{id = 10012, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_hama_04/jinzhan_hama_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_hama_01/jinzhan_hama_01.controller]]}},
+	{id = 10013, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_dujiao_01/jinzhan_dujiao_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_dujiao_01/jinzhan_dujiao.controller]]}},
+	{id = 10014, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_dujiao_02/jinzhan_dujiao_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_dujiao_01/jinzhan_dujiao.controller]]}},
+	{id = 10015, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_dujiao_03/jinzhan_dujiao_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_dujiao_01/jinzhan_dujiao.controller]]}},
+	{id = 10016, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_dujiao_04/jinzhan_dujiao_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_dujiao_01/jinzhan_dujiao.controller]]}},
+	{id = 10017, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_xiezi_01/jinzhan_xiezi_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_xiezi_01/jinzhan_xiezi.controller]]}},
+	{id = 10018, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_xiezi_02/jinzhan_xiezi_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_xiezi_01/jinzhan_xiezi.controller]]}},
+	{id = 10019, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_xiezi_03/jinzhan_xiezi_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_xiezi_01/jinzhan_xiezi.controller]]}},
+	{id = 10020, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_xiezi_04/jinzhan_xiezi_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_xiezi_01/jinzhan_xiezi.controller]]}},
+	{id = 10021, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_lang_01/jinzhan_lang_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_lang_01/jinzhan_lang.controller]]}},
+	{id = 10022, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_lang_02/jinzhan_lang_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_lang_01/jinzhan_lang.controller]]}},
+	{id = 10023, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_lang_03/jinzhan_lang_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_lang_01/jinzhan_lang.controller]]}},
+	{id = 10024, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_lang_04/jinzhan_lang_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_lang_01/jinzhan_lang.controller]]}},
+	{id = 10025, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_01/jinzhan_tanglangjing_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_01/jinzhan_tanglangjing.controller]]}},
+	{id = 10026, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_02/jinzhan_tanglangjing_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_01/jinzhan_tanglangjing.controller]]}},
+	{id = 10027, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_03/jinzhan_tanglangjing_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_01/jinzhan_tanglangjing.controller]]}},
+	{id = 10028, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_04/jinzhan_tanglangjing_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_tanglangjing_01/jinzhan_tanglangjing.controller]]}},
+	{id = 10029, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_01/jinzhan_yanjingshe_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_01/jinzhan_yanjingshe.controller]]}},
+	{id = 10030, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_02/jinzhan_yanjingshe_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_01/jinzhan_yanjingshe.controller]]}},
+	{id = 10031, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_03/jinzhan_yanjingshe_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_01/jinzhan_yanjingshe.controller]]}},
+	{id = 10032, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_04/jinzhan_yanjingshe_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yanjingshe_01/jinzhan_yanjingshe.controller]]}},
+	{id = 10033, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_01/jinzhan_yuren_gunzi_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_01/jinzhan_yuren_gunzi.controller]]}},
+	{id = 10034, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_02/jinzhan_yuren_gunzi_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_01/jinzhan_yuren_gunzi.controller]]}},
+	{id = 10035, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_03/jinzhan_yuren_gunzi_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_01/jinzhan_yuren_gunzi.controller]]}},
+	{id = 10036, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_04/jinzhan_yuren_gunzi_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yuren_gunzi_01/jinzhan_yuren_gunzi.controller]]}},
+	{id = 10037, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_01/jinzhan_yeren_daodunbing_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_01/jinzhan_yeren_daodunbing.controller]]}},
+	{id = 10038, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_02/jinzhan_yeren_daodunbing_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_01/jinzhan_yeren_daodunbing.controller]]}},
+	{id = 10039, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_03/jinzhan_yeren_daodunbing_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_01/jinzhan_yeren_daodunbing.controller]]}},
+	{id = 10040, animList = {ModelRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_04/jinzhan_yeren_daodunbing_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/jinzhan_yeren_daodunbing_01/jinzhan_yeren_daodunbing.controller]]}},
+
+	--远程
+	{id = 20001, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_01/yuancheng_dayanjing_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_01/yuancheng_dayanjing.controller]]}},
+	{id = 20002, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_02/yuancheng_dayanjing_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_01/yuancheng_dayanjing.controller]]}},
+	{id = 20003, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_03/yuancheng_dayanjing_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_01/yuancheng_dayanjing.controller]]}},
+	{id = 20004, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_04/yuancheng_dayanjing_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_dayanjing_01/yuancheng_dayanjing.controller]]}},
+	{id = 20005, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_01/yuancheng_zhangyu_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_01/yuancheng_zhangyu.controller]]}},
+	{id = 20006, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_02/yuancheng_zhangyu_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_01/yuancheng_zhangyu.controller]]}},
+	{id = 20007, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_03/yuancheng_zhangyu_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_01/yuancheng_zhangyu.controller]]}},
+	{id = 20008, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_04/yuancheng_zhangyu_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_zhangyu_01/yuancheng_zhangyu.controller]]}},
+	{id = 20009, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_01/yuancheng_denglongshui_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_01/yuancheng_denglongshui.controller]]}},
+	{id = 20010, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_02/yuancheng_denglongshui_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_01/yuancheng_denglongshui.controller]]}},
+	{id = 20011, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_03/yuancheng_denglongshui_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_01/yuancheng_denglongshui.controller]]}},
+	{id = 20012, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_04/yuancheng_denglongshui_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_denglongshui_01/yuancheng_denglongshui.controller]]}},
+	{id = 20013, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_01/yuancheng_huazhizhu_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_01/yuancheng_huazhizhu.controller]]}},
+	{id = 20014, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_02/yuancheng_huazhizhu_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_01/yuancheng_huazhizhu.controller]]}},
+	{id = 20015, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_03/yuancheng_huazhizhu_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_01/yuancheng_huazhizhu.controller]]}},
+	{id = 20016, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_04/yuancheng_huazhizhu_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huazhizhu_01/yuancheng_huazhizhu.controller]]}},
+	{id = 20017, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_01/yuancheng_lansefeiniao_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_01/yuancheng_lansefeiniao.controller]]}},
+	{id = 20018, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_02/yuancheng_lansefeiniao_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_01/yuancheng_lansefeiniao.controller]]}},
+	{id = 20019, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_03/yuancheng_lansefeiniao_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_01/yuancheng_lansefeiniao.controller]]}},
+	{id = 20020, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_04/yuancheng_lansefeiniao_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_lansefeiniao_01/yuancheng_lansefeiniao.controller]]}},
+	{id = 20021, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_01/yuancheng_liangjiaozhiwu_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_01/yuancheng_liangjiaozhiwu.controller]]}},
+	{id = 20022, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_02/yuancheng_liangjiaozhiwu_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_01/yuancheng_liangjiaozhiwu.controller]]}},
+	{id = 20023, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_03/yuancheng_liangjiaozhiwu_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_01/yuancheng_liangjiaozhiwu.controller]]}},
+	{id = 20024, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_04/yuancheng_liangjiaozhiwu_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_liangjiaozhiwu_01/yuancheng_liangjiaozhiwu.controller]]}},
+	{id = 20025, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_mifeng_01/yuancheng_mifeng_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_mifeng_01/yuancheng_mifeng.controller]]}},
+	{id = 20026, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_mifeng_02/yuancheng_mifeng_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_mifeng_01/yuancheng_mifeng.controller]]}},
+	{id = 20027, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_mifeng_03/yuancheng_mifeng_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_mifeng_01/yuancheng_mifeng.controller]]}},
+	{id = 20028, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_mifeng_04/yuancheng_mifeng_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_mifeng_01/yuancheng_mifeng.controller]]}},
+	{id = 20029, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_01/yuancheng_renxingzhiwu_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_01/yuancheng_renxingzhiwu.controller]]}},
+	{id = 20030, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_02/yuancheng_renxingzhiwu_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_01/yuancheng_renxingzhiwu.controller]]}},
+	{id = 20031, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_03/yuancheng_renxingzhiwu_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_01/yuancheng_renxingzhiwu.controller]]}},
+	{id = 20032, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_04/yuancheng_renxingzhiwu_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_renxingzhiwu_01/yuancheng_renxingzhiwu.controller]]}},
+	{id = 20033, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_01/yuancheng_xiaoyao_fashi_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_01/yuancheng_xiaoyao_fashi.controller]]}},
+	{id = 20034, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_02/yuancheng_xiaoyao_fashi_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_01/yuancheng_xiaoyao_fashi.controller]]}},
+	{id = 20035, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_03/yuancheng_xiaoyao_fashi_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_01/yuancheng_xiaoyao_fashi.controller]]}},
+	{id = 20036, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_04/yuancheng_xiaoyao_fashi_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_xiaoyao_fashi_01/yuancheng_xiaoyao_fashi.controller]]}},
+	{id = 20037, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huolong_01/yuancheng_huolong_01.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huolong_01/yuancheng_huolong.controller]]}},
+	{id = 20038, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huolong_02/yuancheng_huolong_02.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huolong_01/yuancheng_huolong.controller]]}},
+	{id = 20039, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huolong_03/yuancheng_huolong_03.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huolong_01/yuancheng_huolong.controller]]}},
+	{id = 20040, animList = {ModelRes = [[sandboxId://Model/Monster/yuancheng_huolong_04/yuancheng_huolong_04.prefab]], AnimatorRes = [[sandboxId://Model/Monster/yuancheng_huolong_01/yuancheng_huolong.controller]]}},
+	-- {id = 20005, animList = {ModelRes = [[]], AnimatorRes = [[]]}},
+}
+
+local creatureMap = {}
+
+local function initCreatureConfig()
+	for i, v in ipairs(creatureConfig) do
+		creatureMap[v.id] = v
+	end
+end
+
+initCreatureConfig()
+
+local rs = game:GetService("MainStorage")
+local CreatureConfig = require(rs.Scripts.Class)()
+
+function CreatureConfig:Init()
+	
+end
+
+function CreatureConfig:GetCreatureConfig()
+	return creatureConfig
+end
+
+function CreatureConfig:GetCreatureConfigById(id)
+	return creatureMap[id]
+end
+
+return CreatureConfig
+
+
+
+local ItemEnum = {
+	ItemType = {
+		currency 	= 1,   			-- 货币类（不入背包）
+		blaster 	= 2,   			-- 枪械
+		box 		= 3,   			-- 宝箱类
+		melee 		= 4,   			-- 近战武器
+	},
+
+	-- 道具改变类型
+	ItemUpdateType = {
+		-- 道具变更
+		add 		= 1,			-- 增加
+		upd 		= 2,			-- 更新
+		del 		= 3,			-- 删除(可能在背包间转移)
+		itemChange 	= 100,
+		-- 穿戴状态变更
+		wear 		= 101,			-- 穿上
+		getOff 		= 102,			-- 卸下
+		wearChange 	= 200,
+	},
+
+	ItemChangeSource1 = {
+		none 		= 0,			--日常（战令）任务	
+		blaster 	= 2,			--枪械
+		code 		= 3,			--兑换码
+		gm 			= 99999,		--Gm
+	},
+
+	ItemChangeSource2 = {
+		none 		= 0,			--默认用这个
+		code 		= 1,			--兑换码
+	},
+
+	ItemCurrencyType = {
+		gold 		= 1,			--金币
+	},
+}
+
+return ItemEnum
+
+
+

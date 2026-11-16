@@ -1,0 +1,382 @@
+local MainStorage           = game:GetService("MainStorage")
+local RunService            = game:GetService("RunService")
+local DeveloperStoreService = game:GetService("DeveloperStoreService")
+local Players               = game:GetService("Players")
+local localPlayer           = Players.LocalPlayer
+
+local CONST                 = require(MainStorage.Scripts.CONST)
+local TextStr 				= require(MainStorage.Scripts.Util.TextStr)
+local ItemEnum              = EnumHelper.ItemEnum
+local GlobalEventManager    = require(MainStorage.Scripts.Manager.GlobalEventManager)
+local UIManager             = require(MainStorage.Scripts.Manager.UIManager)
+local ConfigManager         = require(MainStorage.Scripts.Manager.ConfigManager)
+local super                 = require(MainStorage.Scripts.Model.Entity)
+local Player                = require(MainStorage.Scripts.Class)(super)
+local NetMessage            = require(MainStorage.Scripts.Net.NetMessage)
+local ProtoId               = require(MainStorage.Scripts.Net.ProtoId)
+
+local PlayerModule          = CONST.ClienPlayerModule
+local PlayerData            = MainStorage.Scripts.PlayerData
+
+local CONTROLLER_ASSET_NORMAL = "sandboxId://Model/Cartoon/OfficialControllerNormal.controller"
+local CONTROLLER_ASSET_2 = "sandboxId://Model/Cartoon/OfficialController2.controller"
+local CONTROLLER_2_BONE_NAME = "bip Head"
+
+local SELECT_ROLE_CONFIG = {
+	{skinNodeName = "ManSkinId", triggerName = "ManTriggerBox"},
+	{skinNodeName = "WomenSkinId", triggerName = "WomenTriggerBox"},
+}
+
+local function GetChild(parent, childName)
+	if not parent or not childName then
+		return nil
+	end
+	if parent.FindFirstChild then
+		return parent:FindFirstChild(childName)
+	end
+	return parent[childName]
+end
+
+local function ReadSkinId(skinNode)
+	if not skinNode then
+		return nil
+	end
+	local ok, skinId = pcall(function()
+		return skinNode.SkinId
+	end)
+	skinId = ok and tonumber(skinId) or nil
+	if skinId and skinId > 0 then
+		return skinId
+	end
+	return nil
+end
+
+function Player:ctor(userId)
+	self.eventKey    = string.format("%suserId", userId)
+	self.timerCount = 30
+	self.selectRoleConnList = {}
+end
+
+function Player:PlayerAdded(gamePlayer)
+	self.gamePlayer = gamePlayer
+	self.obj = gamePlayer.Character
+end
+
+function Player:Init()
+	self.entityId = localPlayer.UserId
+	-- 事件管理类优先初始化
+	self.EventManager = GlobalEventManager
+
+	for index, value in pairs(PlayerModule) do
+		local model = PlayerData:FindFirstChild(value .. "Data", 5)
+		if model then
+			local m = require(model)
+			if m and m.New then
+				self[value] = m.New(self)
+			else
+				shared.warn("player module load error:" .. value)
+			end
+		else
+			shared.warn("player module load error:" .. value)
+		end
+	end
+	for index, value in pairs(PlayerModule) do
+		local m = self[value]
+		if m then
+			m:Init()
+		end
+	end
+end
+
+function Player:InitData(data)
+	-- 玩家数据
+	local playerData = data.player or {}
+	self.isAdmin = playerData.isAdmin
+	-- 初始化模块数据
+	for index, value in ipairs(PlayerModule) do
+		local m = self[value]
+		if m then
+			m:InitData(data[value] or {})
+		end
+	end
+	self.UIManager = UIManager.New(self)
+	for index, value in ipairs(PlayerModule) do
+		local m = self[value]
+		if m then
+			m:OnLoadDone()
+		end
+	end
+
+	self.loadDone = true
+
+	-- 角色数据加载完成
+	GlobalEventManager:Trigger("PlayerInitDataDone", self)
+	-- UI初始化
+	self.UIManager:Init()
+	GlobalEventManager:Trigger("PlayerUIInitDone", self)
+	self:InitSelectRoleTrans()
+
+	-- local character1 = self:GetCharacter()
+	-- character1.SkinId = 259
+	-- local character = self:GetCharacter()
+	-- character:GetBones()
+	-- print("====================================  " , character:GetBones())
+	-- local timer = SandboxNode.new("Timer") -- 创建定时器节点
+	-- timer.Delay = 2 -- 延迟多少秒开始
+	-- timer.Loop = true -- 是否循环
+	-- timer.Interval = 1
+	-- timer.Callback = function() -- 回调方法
+	-- 	local character = self:GetCharacter()
+	-- 	local animator = character and character.Animator
+	-- 	local ok = character and character:GetBoneNodeByName(CONTROLLER_2_BONE_NAME)
+	-- 	-- print(character:GetBoneNodeByName([[Head]]))
+	-- 	-- print(character:GetBoneNodeByName([[bip Head]]))
+	-- 	if not ok then
+	-- 		if animator.ControllerAsset ~= CONTROLLER_ASSET_2 then
+	-- 			animator.ControllerAsset = CONTROLLER_ASSET_2
+	-- 			self.timer:Destroy()
+	-- 			self.timer = nil
+	-- 		end
+	-- 	end
+	-- 	self.timerCount = self.timerCount - 1
+	-- 	if self.timerCount <= 0 then
+	-- 		self.timer:Destroy()
+	-- 		self.timer = nil
+	-- 	end
+	-- end
+	-- timer:Start()
+	-- self.timer = timer
+end
+
+-- 模拟数据
+function Player:ApplyLocalSkinId(skinId)
+	local character = localPlayer and localPlayer.Character
+	if character and skinId then
+		character.SkinId = skinId
+	end
+end
+
+function Player:SelectRoleSkinId(skinId)
+	skinId = tonumber(skinId)
+	if not skinId or skinId <= 0 then
+		return
+	end
+	self:ApplyLocalSkinId(skinId)
+	NetMessage:SendRequest(ProtoId.Player_ChangeSkinReq, {skinId = skinId})
+end
+
+function Player:BindSelectRoleTrigger(root, roleConfig)
+	local skinNode = GetChild(root, roleConfig.skinNodeName)
+	local triggerBox = GetChild(root, roleConfig.triggerName)
+	local skinId = ReadSkinId(skinNode)
+	if not triggerBox then
+		shared.warn("[Player] missing select role trigger: " .. tostring(roleConfig.triggerName))
+		return
+	end
+	if not skinId then
+		shared.warn("[Player] missing select role SkinId: " .. tostring(roleConfig.skinNodeName))
+		return
+	end
+	table.insert(self.selectRoleConnList, triggerBox.Touched:Connect(function(node)
+		if localPlayer and localPlayer.Character and node == localPlayer.Character then
+			self:SelectRoleSkinId(skinId)
+		end
+	end))
+end
+
+function Player:InitSelectRoleTrans()
+	if self.isSelectRoleInit then
+		return
+	end
+	self.isSelectRoleInit = true
+	local root = GetChild(game:GetService("WorkSpace"), "SelectRoleTrans")
+	if not root then
+		shared.warn("[Player] missing Workspace.SelectRoleTrans")
+		return
+	end
+	for _, roleConfig in ipairs(SELECT_ROLE_CONFIG) do
+		self:BindSelectRoleTrigger(root, roleConfig)
+	end
+end
+
+function Player:InitSimData(simData)
+end
+
+function Player:LeaveGame()
+end
+
+function Player:IsAdmin()
+	return self.isAdmin
+end
+
+-- 玩家数据加载完成
+function Player:GetLoadDone()
+	return self.loadDone
+end
+
+function Player:GetEntityId()
+	return self.entityId
+end
+
+function Player:GetCharacter()
+	return self.obj
+end
+
+-- 本地玩家
+function Player:GetGamePlayer()
+	return localPlayer
+end
+
+-- 获取名字
+function Player:GetName()
+	if not self.playerName then
+		self.playerName = self:GetGamePlayer().Nickname
+	end
+	return self.playerName
+end
+
+function Player:GetHRPPart()
+	local character = self:GetCharacter()
+	return character
+end
+
+function Player:GetPosition()
+	local hrp = self:GetHRPPart()
+	if not hrp then
+		return
+	end
+	return hrp.Position
+end
+
+function Player:SetPosition(pos)
+	local hrp = self:GetHRPPart()
+	if hrp then
+		hrp.Position = pos
+	end
+end
+
+-- 属性刷新
+function Player:OnPropChange(propList)
+	table.clear(self.propMap)
+	for i, v in ipairs(propList) do
+		self.propMap[v.type] = v.value
+	end
+end
+
+-- 获得当前属性
+function Player:GetPropMap()
+	return self.propMap
+end
+
+function Player:SendTips(str)
+	-- GlobalEventManager:Trigger("CreateNormalTips", msg)
+	self.EventManager:Trigger("OnNormalTips", str)
+end
+--------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------
+-- 开发者道具
+
+-- 请求购买开发者道具
+function Player:BuyDevProduct(devProductId, desc)
+	DeveloperStoreService:BuyGoods(devProductId, desc, 1)
+end
+
+-- 请求购买开发者道具
+function Player:SendBuyDevProductReq(devProductId)
+	local config = ConfigManager.DevProductConfig:GetDevProductConfigById(devProductId)
+	if not config then
+		return
+	end
+	local message = {
+		devProductId = devProductId
+	}
+	print("devProductId ----------------------  " .. devProductId)
+	NetMessage:SendRequest(ProtoId.Player_BuyDevProductReq, message)
+end
+
+-- 请求购买平台通行证
+function Player:BuyPasses(passesId)
+	local config = ConfigManager.PassesConfig:GetPassesConfigById(passesId)
+	if not config then
+		return
+	end
+	local message = {
+		passesId = passesId
+	}
+	NetMessage:SendRequest(ProtoId.Player_BuyPassesReq, message)
+end
+
+-- 购买开发者道具成功
+function Player:OnBuyDevProduct(devProductId)
+	local config = ConfigManager.DevProductConfig:GetDevProductConfigById(devProductId)
+	if not config then
+		return
+	end
+	print("购买开发者道具成功   客户端收到消息")
+end
+
+----------道具相关----------------------------------
+-- 获取道具数量
+function Player:GetItemNum(id)
+	local config = ConfigManager.ItemConfig:GetItemConfigById(id)
+	if not config then return 0 end
+	if config.type == ItemEnum.ItemType.currency then
+		-- 货币
+		return self.Detail:GetCurrencyNum(id)
+	else
+		-- 获取道具
+		return self.Bag:GetItemNumByConfigId(id)
+	end
+end
+
+
+-- 获取道具数量
+function Player:CheckItemEnough(items, notify)
+	if items == nil or #items == 0 then
+		return false	-- 如果为空/空表返回false, 防止配置错误被刷物品,不需要消耗物品的话,就无需调此接口
+	end
+	for index, value in ipairs(items) do
+		if not value.id or not value.num then	-- 结构不对
+			return false
+		end
+		local have = self:GetItemNum(value.id)
+		if have < value.num then
+			if notify then
+				local config = ConfigManager.ItemConfig:GetItemConfigById(value.id)
+				if config then
+					self:SendTips(string.format(TextStr.NotEnoughTipsStr, config.name, shared.NumToString(value.num), shared.NumToString(have)))
+				end
+			end
+			return false
+		end
+	end
+	return true
+end
+
+--检查 不弹商店购买
+function Player:CheckItemEnough2(items, notify , isGuide)
+	if items == nil or next(items) == nil then
+		return true
+	end
+	for index, value in ipairs(items) do
+		local have = self:GetItemNum(value.id)
+		if have < value.num then
+			if notify then
+				local config = ConfigManager.ItemConfig:GetItemConfigById(value.id)
+				if config then	
+					self:SendTips(string.format(TextStr.NotEnoughTipsStr, config.name, shared.NumToString(value.num), shared.NumToString(have)))
+				end
+			end
+			return false
+		end
+	end
+	return true
+end
+----------道具相关----------------------------------
+
+-- print("localPlayerlocalPlayerlocalPlayerlocalPlayerlocalPlayer   " , localPlayer)
+local Ins = Player.New(localPlayer.UserId)
+Ins:Init()
+
+return Ins
