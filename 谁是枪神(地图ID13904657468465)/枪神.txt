@@ -1,0 +1,944 @@
+--MEventID.lua
+local MEventID = {
+	--服务器代码之间的事件ID 
+	InitGame = 1,
+	PlayerEnterGame = 2, --userid
+	PlayerExitGame = 3, --userid
+
+	PlayerCutInGame = 4,
+
+	AIPlayerEnterGame = 5, --aipalyer
+	AIPlayerExitGame = 6, --aipalyer
+
+	PlayerQuitGame = 8,
+
+	GameStart = 10,
+	GameOver = 11,
+
+	GameVoteStart = 16,
+	GameVoteOver = 17,
+
+	LevelMapLoaded = 20, --地图加载完成 UserData:SceneModelObject 地图对象
+
+	PlayerDeployed = 30, --玩家部署 --协议体 number:UserID
+	PlayerJoinTeam = 31, --玩家加入队伍  table:{userid=userid, teamId=teamId}
+	PlayerQuitTeam = 32, --玩家退出队伍  table:{userid=userid, oldTeamId=oldTeamId}
+	PlayerBackToLobby = 33,	--玩家返回大厅
+
+	PlayerBeDamage = 101, --角色相关 受伤{player=self.player,damager=damager.player,air_shot = is_air_shot,head_shot=(tbl.hitPart == "head"),blind_shot=tbl.blind_shot,back_shot =(tbl.hitBehind == 1),dead=(new_health == 0),weapon_id=tbl.weapon_id,is_melee=is_melee}
+	PlayerDie = 102,--角色相关 死亡 table:{userId=self.player.UserId}
+	PlayerRelive = 103, --角色复活 number:userId
+	Player_AreaDamage=104, -- 区域伤害
+	Event_Server_WEAPON_PROJECT=105,--创建实体子弹
+
+	--玩法模式相关事件
+	PreChangeWeapon = 202,	--更换武器预通告
+	ChangeWeapon = 203,		--正式更换武器
+	UpdateTeamData = 204,	--更新队伍数据
+	PlayerBecomeMonkey = 205,  --玩家变成猴子(香蕉人)事件
+	PickBall = 206, --玩家捡到球 给到角色模块
+	DropBall = 207, --服务器之间发送 球离开
+
+	PveRefreshAi = 208, --pve刷怪
+	TowerBeDamage = 209,	--水晶被攻击
+
+	--重置玩家储物柜shuffle模式的装备
+	ResetShuffleEquip = 228,
+
+	GetItems = 251, --买到物品
+
+	----------------任务和成就 排行榜相关 300 - 350
+	-- 任务
+	TaskAnalyse_Kill            = 280, -- 任务数据解析 击杀
+	TaskAnalyse_Gameover        = 281, --结束游戏单独事件
+	-- TaskAnalyse_TotleDie        = 282, --累计死亡
+	-- TaskAnalyse_TotleAssists    = 283, --累计助攻
+	TaskAnalyse_TotleGotDayTask = 284, --累计达成每日挑战
+	TaskAnalyse_TotleOnline     = 285, --累计在线时长
+	TaskAnalyse_GotCoin         = 286, --获得游戏币
+	TaskAnalyse_LuckyAward      = 287, --抽奖n次
+	TaskAnalyse_BuySomething    = 288, --购买了n次x物品
+	TaskAnalyse_Rank            = 289, --排行榜上榜
+
+	-- 成就
+	AchieveAnalyse_Lv           = 310,--成就分析_等级
+	AchieveAnalyse_Kill         = 311,--成就分析_击杀-爆头-背刺-连杀-助攻-被助攻
+	AchieveAnalyse_gameover     = 312,--成就分析_对局结束
+	AchieveAnalyse_UseMotion    = 313,--成就分析_使用表情
+	AchieveAnalyse_MultipleKill = 314,--成就分析_同时多杀（一炮炸死人）
+	AchieveAnalyse_fly          = 315,--成就分析_空中飞
+	-- 生涯
+	CareerStatistics_kill       = 320, --生涯统计
+	CareerStatistics_gameover   = 321, --生涯统计--完成对局
+
+	--排行榜 330 - 339
+	-- 
+
+	--平台购买回调事件
+	ClientPlatformPurchaseReq = 1001,
+	PlatformPurchaseSucceed = 1002, 
+
+
+	--客户端代码之间的事件ID 10000开始
+	PlayerAccountInfo = 10001, --玩家账号信息
+	
+	PlayersDataChanged = 10101, --局内玩家数据变化事件
+	PlayerRealTimeKill = 10102, --实时击杀(高光时刻)事件
+	PlayerSerialKill = 10103, --玩家连杀事件
+	PlayerNextWeapon = 10104, --下一把武器预告
+	TeamsDataChanged = 10105, --队伍数据变更
+	PlayerRollWeaponResult = 10106, --玩家roll武器(随机武器玩法)
+	PlayerRollWeaponChance = 10107, --玩家获得/失去roll武器的机会, 根据此事件显隐UI中roll武器机会的节点
+	PlayerDominate = 10108, --玩家支配/复仇事件
+	GameMatchPoint = 10109, --赛点事件
+	GameTick = 10110, --本局游戏倒计时事件
+	GameResultInfo = 10111, --战局结算
+	ShowTips = 10112, --显示提示  {content = xxx}
+	PlayerBeKill = 10113, --暂用于显示杀人名片
+	WatchFocusActor = 10114, -- 观战目标事件
+	PlayerLeaveGame = 10115,	--玩家离开游戏 
+	PlayerComboKill = 10116,	--玩家超神击杀事件
+	ObserverQuitTeam = 10117,	--观战者退出队伍
+	MvpChanged = 10118,		--mvp变更
+	SET_BGM = 10119,-- 设置变动 背景音乐
+	First_Player = 10120, -- 首位玩家加入游戏
+	Change_Auto = 10121, -- 切换设计模式
+	Client_PlayerRelive = 10122, -- 客户端复活事件
+	PVE_TOWER_SYNC = 10123,	--PVE基地数据同步事件
+	PVE_NEXT_AI_TIMER = 10124,	--文本提示.PVE刷怪倒计时
+	PVE_REFRESH_AI = 10125,	--文本提示.PVE怪出来了
+	PVE_BASE_BEATTACK = 10126, -- 通知base被攻击
+	PVE_SHOW_OBSERVER_UI = 10127,--pve显示观战ui
+
+	-----任务 成就 生涯 排行榜 10200-10249
+	Client_TaskData      = 10200,
+	Client_TaskUpdate    = 10201,
+	Client_TaskBuy       = 10202,
+	Client_TaskDel       = 10203,
+	Client_AchieveData   = 10210,
+	Client_AchieveUpdate = 10211,
+	Client_AchieveLVUP   = 10212,
+	Client_CareerData    = 10220,
+	Client_AwardContractQuick      = 10221,
+	Client_AwardSeasonChallenQuick = 10222,
+	Client_AwardWeekChallenQuick   = 10223,
+	Client_UpdateTaskRedCount = 10224, -- 合约任务界面累计需要红点数量
+	Client_RankData  = 10225,
+	Client_RankAward = 10226,
+	Client_MainLineTaskData  = 10227, --主线任务数据
+	Client_MainLineTaskAward  = 10228, --主线任务领奖
+
+
+
+	----------------------------
+
+	Client_SettingData    = 10301,
+	Client_UpdateSettingData    = 10302,
+
+	--储物柜系统
+	ItemsDataChanged = 11001, --道具数据变更
+	Client_GetItem = 11002, -- 新增物品
+	Client_itemChangeData = 11003, -- 客户端数据变更
+	--装备系统
+	EquipsDataChanged = 12001, --装备数据变更
+	UIEquipsDressResult = 12002, --装备变更, UI结果
+
+	SetMobileFightLayoutResult = 13001,	--设置移动端布局响应
+
+	-- 活动
+	Activity_Data=14000, -- 活动数据
+	SevenDayStateChange=14001, -- 7天登录奖品领取状态变更
+	LotterNumChange=14002, -- 抽奖 看广告次数
+	Lotter_goods=14003, -- 抽奖获得的物品
+
+	NextDay = 15001,	--跨天事件
+	
+
+	SensitivityTest=16001,  -- 灵敏度测试
+
+	GameSettingAutoFire = 17001, --自动射击选项被调整
+
+	-- Load_Weapons =18001, -- 装备武器
+	-- UnLoad_Weapons=18002, -- 卸下武器
+	LocalPlayerGameControl = 18001 -- 游戏开始
+}
+
+return MEventID
+
+
+
+--MGM.lua
+local RunService = game:GetService("RunService")
+local MGM = {}
+
+local _static_client_map = {}
+local _static_server_map = {}
+
+if RunService:IsServer() then
+	if Const.VersionMode ~= 1 then
+		return
+	end
+	local function OnCLIENT_GM_COMMAND(userId, msgid, cmd)
+		MGM:ServerTrigger(userId, cmd.name, cmd.args)
+	end
+
+	Bridge:RegisterClientMessageCallback(Proto.ClientMSGID.CLIENT_GM_COMMAND, OnCLIENT_GM_COMMAND)
+end
+
+MGM.ClientRegister = function(self, command, func)
+	if Const.VersionMode ~= 1 then
+		return
+	end
+	local evs = _static_client_map[command]
+	if evs == nil then
+		evs = {}
+		_static_client_map[command] = evs
+	end
+	
+	if evs[func] ~= nil and evs[func]._valid == true then
+		error("events already register, gm command " .. command)
+		return false
+	end
+	
+	evs[func] = {
+		_valid = true,
+		_callback = func
+	}
+	return true;
+end
+
+MGM.ServerRegister = function(self, command, func)
+	command = string.upper(command) --gm界面输入框存在自动大写的问题，此处为了适应问题
+	local evs = _static_server_map[command]
+	if evs == nil then
+		evs = {}
+		_static_server_map[command] = evs
+	end
+	
+	if evs[func] ~= nil and evs[func]._valid == true then
+		error("events already register, gm command " .. command)
+		return false
+	end
+	
+	evs[func] = {
+		_valid = true,
+		_callback = func
+	}
+	return true;
+end
+
+MGM.ClientTrigger = function(self, userId, name, args)
+    LOG('temp',"GM name : " .. name .. ", args : " .. OUtils.table2str(args))
+    local evs = _static_client_map[name]
+    if evs ~= nil then
+        for k, v in pairs(evs) do
+            v._callback(userId, args)
+        end
+    end
+end
+
+MGM.ServerTrigger = function(self, userId, name, args)
+    LOG('temp',"GM name : " .. name .. ", args : " .. OUtils.table2str(args))
+    local evs = _static_server_map[name]
+    if evs ~= nil then
+        for k, v in pairs(evs) do
+            v._callback(userId, args)
+        end
+    end
+end
+
+MGM:ServerRegister("gmtest", function(userId, args)
+    LOG('temp',"Gm test userId : " .. userId .. ", args : " .. OUtils.table2str(args))
+end)
+
+--自杀GM
+MGM:ServerRegister("KILLSELF", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:KillSelf()
+end)
+--替换枪
+MGM:ServerRegister("GET", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	local id = tonumber(args[2])
+	local conf = Config.Data.Melee_weapon
+	local isBall = id == 2801
+	local weaponIndex = conf[id] and 3 or 1
+	role:ChangeWeapon(weaponIndex, id, isBall)
+end)
+--替换分数
+MGM:ServerRegister("SCORE", function(userId, args)
+	Modules.GameModeManager:GM_ChangeScore(userId, tonumber(args[2]))
+end)
+--金刀
+MGM:ServerRegister("GOLDEN", function(userId, args)
+	Events:Trigger(EventID.ChangeWeapon, {playerId = userId, weaponId = 3002})
+end)
+--测试GM
+MGM:ServerRegister("TEST", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:Test()
+end)
+MGM:ServerRegister("TEST_BUFF", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:TakeDamage({weapon_id=2242,damage_type = Const.DamageType.NORMAL,hitPart='head',hitDist=1,blind_shot=false}, role)
+end)
+
+
+--GM测试掉血
+MGM:ServerRegister("SUB_BLOOD", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:TakeDamage({damage_type = Const.DamageType.FALL,damage=tonumber(args[2])},self)
+end)
+
+--GM直接结束游戏
+MGM:ServerRegister("GG", function(userId, args)
+	Modules.GameModeManager:GM_GameOver(userId)
+end)
+
+--指定玩法模式(会直接结束游戏) MODE id, id = 0则清除指定模式
+MGM:ServerRegister("MODE", function(userId, args)
+	local modeId = tonumber(args[2] or 0)
+	local ret = Modules.GameProcess.SetGmMode(modeId)
+	if ret and modeId ~= 0 then
+		--立即结束游戏, 进入下一把指定模式
+		Modules.GameModeManager:GM_GameOver(userId)
+	end
+end)
+
+--GM自动射击
+MGM:ClientRegister("AUTO", function(userId, args)
+	-- CMainGame.SavedAutoFire = (not CMainGame.SavedAutoFire)
+	-- print('CMainGame.SavedAutoFire='..tostring(CMainGame.SavedAutoFire))
+	-- local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	-- role:checkToolAutoFire()
+end)
+
+--测试，一处服务器AREA
+MGM:ServerRegister('REMOVE_MAP', function(userid, args)
+	local workSpace = game:GetService('WorkSpace')
+	local map = workSpace:FindFirstChild(Const.GameMapName)
+	if map then
+		local _node = map:FindFirstChild(args[2])
+		if _node then
+			_node.Parent = nil
+		end
+	end
+end)
+
+--GM辅助瞄准
+MGM:ClientRegister("AIM", function(userId, args)
+	-- CMainGame.SavedAimAssist = (not CMainGame.SavedAimAssist)
+	-- print('CMainGame.SavedAimAssist='..tostring(CMainGame.SavedAimAssist))
+	-- local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	-- role:checkToolAimAssist()
+end)
+
+--GM快速切换地图
+MGM:ServerRegister("MAP", function(userId, args)
+	Modules.LevelManager:GM_ChangeMap(tonumber(args[2]))
+	GameCamera:refreshDataByMap(tonumber(args[2]))
+	local role = SPlayerManager:GetRole(userId)
+	role:KillSelf()
+end)
+
+--GM快速切换地图
+MGM:ServerRegister("FILLAMMO", function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	role:TryFillWeaponAmmo(0.1)
+end)
+
+MGM:ServerRegister("SETKV_KILL&DIE", function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	if not role then
+		LOG('zzj', 'GM 设置玩家助攻&死亡的KV数据错误, 房间内无该玩家数据')
+		return
+	end
+	local career = Modules.CareerStatistics:getUserData(userId)
+	career.Kill = tonumber(args[2] or career.Kill)
+	career.Death = tonumber(args[3] or career.Death)
+	Modules.CareerStatistics:uploadUserDataToCloud(userId)
+end)
+
+--测试不同地图
+MGM:ServerRegister("TESTMAP", function(userId, args)
+	local cardlist = {1,13,21,33,45,57,69,81}
+	local GameCreateStamp = OUtils.time.GetCurrentSecond()
+	local CurGameId =  cardlist[tonumber(args[2])]
+	Bridge:BroadcastMessage(Proto.ServerMSGID.SERVER_GAME_START_PUSH, {gameId = CurGameId, startStamp = GameCreateStamp})
+	Events:Trigger(EventID.GameStart, CurGameId)
+end)
+
+MGM:ServerRegister('DATE', function(userId, args)
+	local stamp = os.time({year=2024, month=2, day=tonumber(args[2]), hour=1, min=0, sec=0})
+	OUtils.TestStamp = stamp
+	Events:Trigger(EventID.NextDay)
+end)
+
+MGM:ClientRegister('JUMP', function(userId, args)
+	local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	local jump_speed = tonumber(args[2] or 0)
+	local gravity = tonumber(args[3] or 9.8)
+	role.node:SetJumpInfo(jump_speed, 0)
+	role.node.Gravity = gravity
+	-- print('设置完成  跳跃速度='..jump_speed..'  重力加速度'..gravity)
+end)
+
+MGM:ClientRegister('TOGGLESCENE', function(userId, args)
+	local workspace = game:GetService('WorkSpace')
+	local map = workspace:FindFirstChild('GameMapName')
+	local allChildren = map.Children
+	for _, child in ipairs(allChildren) do
+		if child.ClassType == 'Model' then
+			if child.Visible then
+				child.Visible = false
+			else
+				child.Visible = true
+			end
+		end
+	end
+end)
+
+--重置玩家储物柜数据
+MGM:ServerRegister('RESET_LOCKERS', function(userId, args)
+	Modules.ItemManager:GM_ResetLockers(userId)
+end)
+
+
+--储物柜加道具 args[2] = itemId(只支持shop_item中的id), args[3] = count(目前只有货币才能超过1) 
+MGM:ServerRegister('ADDITEM', function(userId, args)
+	local itemId = tonumber(args[2] or 0)
+	local count = tonumber(args[3] or 1)
+	if itemId == 0 then
+		LOG('zzj', '增加道具的GM: ADDITEM itemId count(默认1)')
+		return
+	end
+	Modules.ItemManager:GM_AddItem(userId, itemId, count)
+end)
+
+-- 重置活动数据
+MGM:ServerRegister('ACTIVITY', function(userId, args)
+	Modules.ActivityManager:GM_ResetActivity(userId)
+end)
+
+--增加角色经验
+MGM:ServerRegister('EXP', function(userId, args)
+	local exp = tonumber(args[2] or 0)
+	Modules.AccountManager:UpdateAccountData(userId, {exp = exp})
+end)
+
+--测试移动端布局.临时.todo
+MGM:ClientRegister('PLATFORM', function(userId, args)
+	if args[2] == 'PC' or args[2] == 'MOBILE' then
+		OUtils.platform = args[2]
+		UIMainView.setPlatformFightingView()
+	end
+end)
+
+--播放嘲讽
+MGM:ClientRegister('TAUNT', function(userId, args)
+	local index = tonumber(args[2]) or 1
+	local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	role:setTauntState(true, index)
+end)
+
+--清理玩家云服数据 @param 清理指定CloudKey的数据, 若不带key则清理该玩家所有数据
+MGM:ServerRegister('CLEAR_CLOUD', function(userId, args)
+	Modules.CloudManager:ClearPlayerCloud(userId, args[2])
+end)
+
+--切换队伍颜色 @param 队伍ID 1~16
+MGM:ClientRegister('TEAM_COLOR', function(userId, args)
+	local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	if role.handActor and role.handActor:IsLoadFinish() then
+		role:SetRoleTeamColor(role.handActor, tonumber(args[2] or 0))
+	end
+	if role.isLocalPlayer and role.fullbodyActor and role.fullbodyActor:IsLoadFinish()then
+		role:SetRoleTeamColor(role.fullbodyActor, tonumber(args[2] or 0))
+	end
+end)
+
+
+MGM:ServerRegister('AIOFF', function(userId, args)
+	Modules.Ai.SetStatus(false)
+end)
+
+MGM:ServerRegister('AION', function(userId, args)
+	Modules.Ai.SetStatus(true)
+	Modules.Ai:AddAiPlayerNum(tonumber(args[2] or 0))
+end)
+
+MGM:ServerRegister('AIFIRE', function(userId, args)
+	Modules.Ai:SetFireStatus(tonumber(args[2] or 0)==1)
+	-- Modules.Ai:SetFireInterval(tonumber(args[2] or 0))
+end)
+
+MGM:ServerRegister('AISTOP', function(userId, args)
+	Modules.Ai.AUTO_UPDATE = not Modules.Ai.AUTO_UPDATE
+	-- Modules.Ai:SetFireInterval(tonumber(args[2] or 0))
+end)
+
+MGM:ServerRegister('AITEST', function(userId, args)
+	Modules.Ai.TEST = true
+end)
+
+MGM:ServerRegister('TEAMINFO', function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	local tbl = {}
+	for k,v in pairs(SPlayerManager.roles) do
+		table.insert(tbl,{user_id=k, team_id = v.server_team_id})
+	end
+	Bridge:BroadcastMessage(Proto.ServerMSGID.SERVER_TEAMID_RESPONSE, tbl)
+end)
+
+MGM:ServerRegister('ALLMODEL', function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	local model_id = tonumber(args[2])
+
+	for k,v in pairs(SPlayerManager.roles) do
+		v:SetModelId(model_id)
+	end
+
+	Bridge:BroadcastMessage(Proto.ServerMSGID.SERVER_MODELID_RESPONSE, {model_id = model_id})
+end)
+
+MGM:ServerRegister('MAINTASK_OVER', function(userId, args)
+	Modules.MainTaskLineManager:forGMTestComplete(userId)
+end)
+
+MGM:ServerRegister('LEAVE', function(userId, args)
+	local role = SPlayerManager:GetRole(2)
+	if role then
+		print('有这么个AI')
+		role:OnLeaveScene()
+	else
+		print('没有这个AI')
+	end
+end)
+
+--跨天GM测试.需要做好时间戳的配合
+MGM:ServerRegister('NEXT_DAY', function(userId, args)
+	Events:Trigger(EventID.NextDay)	
+end)
+
+MGM:ClientRegister('WHO', function(userid, args)
+	local roles = CMainGame.playerManager.roles
+	local tbl = {}
+	for k, v in pairs(roles) do
+		local kv = {}
+		kv.UserId = v.player.UserId
+		kv.ModelId = v.node:GetAttribute('ModelId')
+		kv.ModelPath = v.handActor and v.handActor.ModelId or 'hand actor is nil!'
+		tbl[#tbl + 1] = kv
+	end
+
+	print('RoleModel --->'..OUtils.tab2str(tbl))
+end)
+
+MGM:ClientRegister('DEATHID', function(userid, args)
+	local death_id = tonumber(args[2])
+	local role = CMainGame.playerManager.roles[CMainGame.playerManager.localPlayer.UserId]
+	role.node:SetAttribute('DeathId', death_id)
+end)
+
+MGM:ClientRegister('CHAT', function(userId, args)
+	UIMainView._AddChatitem(userId,args[2])
+	-- print('---------------',args[2])
+end)
+
+MGM:ServerRegister('TESTSEASON', function(userId)
+	local userId1 = tonumber(userId)
+	Modules.TaskManager:TEST(userId1)
+
+end)
+
+
+return MGM
+
+
+----GM指令
+--MGM.lua
+local RunService = game:GetService("RunService")
+local MGM = {}
+
+local _static_client_map = {}
+local _static_server_map = {}
+
+if RunService:IsServer() then
+	if Const.VersionMode ~= 1 then
+		return
+	end
+	local function OnCLIENT_GM_COMMAND(userId, msgid, cmd)
+		MGM:ServerTrigger(userId, cmd.name, cmd.args)
+	end
+
+	Bridge:RegisterClientMessageCallback(Proto.ClientMSGID.CLIENT_GM_COMMAND, OnCLIENT_GM_COMMAND)
+end
+
+MGM.ClientRegister = function(self, command, func)
+	if Const.VersionMode ~= 1 then
+		return
+	end
+	local evs = _static_client_map[command]
+	if evs == nil then
+		evs = {}
+		_static_client_map[command] = evs
+	end
+	
+	if evs[func] ~= nil and evs[func]._valid == true then
+		error("events already register, gm command " .. command)
+		return false
+	end
+	
+	evs[func] = {
+		_valid = true,
+		_callback = func
+	}
+	return true;
+end
+
+MGM.ServerRegister = function(self, command, func)
+	command = string.upper(command) --gm界面输入框存在自动大写的问题，此处为了适应问题
+	local evs = _static_server_map[command]
+	if evs == nil then
+		evs = {}
+		_static_server_map[command] = evs
+	end
+	
+	if evs[func] ~= nil and evs[func]._valid == true then
+		error("events already register, gm command " .. command)
+		return false
+	end
+	
+	evs[func] = {
+		_valid = true,
+		_callback = func
+	}
+	return true;
+end
+
+MGM.ClientTrigger = function(self, userId, name, args)
+    LOG('temp',"GM name : " .. name .. ", args : " .. OUtils.table2str(args))
+    local evs = _static_client_map[name]
+    if evs ~= nil then
+        for k, v in pairs(evs) do
+            v._callback(userId, args)
+        end
+    end
+end
+
+MGM.ServerTrigger = function(self, userId, name, args)
+    LOG('temp',"GM name : " .. name .. ", args : " .. OUtils.table2str(args))
+    local evs = _static_server_map[name]
+    if evs ~= nil then
+        for k, v in pairs(evs) do
+            v._callback(userId, args)
+        end
+    end
+end
+
+MGM:ServerRegister("gmtest", function(userId, args)
+    LOG('temp',"Gm test userId : " .. userId .. ", args : " .. OUtils.table2str(args))
+end)
+
+--自杀GM
+MGM:ServerRegister("KILLSELF", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:KillSelf()
+end)
+--替换枪
+MGM:ServerRegister("GET", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	local id = tonumber(args[2])
+	local conf = Config.Data.Melee_weapon
+	local isBall = id == 2801
+	local weaponIndex = conf[id] and 3 or 1
+	role:ChangeWeapon(weaponIndex, id, isBall)
+end)
+--替换分数
+MGM:ServerRegister("SCORE", function(userId, args)
+	Modules.GameModeManager:GM_ChangeScore(userId, tonumber(args[2]))
+end)
+--金刀
+MGM:ServerRegister("GOLDEN", function(userId, args)
+	Events:Trigger(EventID.ChangeWeapon, {playerId = userId, weaponId = 3002})
+end)
+--测试GM
+MGM:ServerRegister("TEST", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:Test()
+end)
+MGM:ServerRegister("TEST_BUFF", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:TakeDamage({weapon_id=2242,damage_type = Const.DamageType.NORMAL,hitPart='head',hitDist=1,blind_shot=false}, role)
+end)
+
+
+--GM测试掉血
+MGM:ServerRegister("SUB_BLOOD", function(userId, args)
+    local role = SPlayerManager:GetRole(userId)
+	role:TakeDamage({damage_type = Const.DamageType.FALL,damage=tonumber(args[2])},self)
+end)
+
+--GM直接结束游戏
+MGM:ServerRegister("GG", function(userId, args)
+	Modules.GameModeManager:GM_GameOver(userId)
+end)
+
+--指定玩法模式(会直接结束游戏) MODE id, id = 0则清除指定模式
+MGM:ServerRegister("MODE", function(userId, args)
+	local modeId = tonumber(args[2] or 0)
+	local ret = Modules.GameProcess.SetGmMode(modeId)
+	if ret and modeId ~= 0 then
+		--立即结束游戏, 进入下一把指定模式
+		Modules.GameModeManager:GM_GameOver(userId)
+	end
+end)
+
+--GM自动射击
+MGM:ClientRegister("AUTO", function(userId, args)
+	-- CMainGame.SavedAutoFire = (not CMainGame.SavedAutoFire)
+	-- print('CMainGame.SavedAutoFire='..tostring(CMainGame.SavedAutoFire))
+	-- local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	-- role:checkToolAutoFire()
+end)
+
+--测试，一处服务器AREA
+MGM:ServerRegister('REMOVE_MAP', function(userid, args)
+	local workSpace = game:GetService('WorkSpace')
+	local map = workSpace:FindFirstChild(Const.GameMapName)
+	if map then
+		local _node = map:FindFirstChild(args[2])
+		if _node then
+			_node.Parent = nil
+		end
+	end
+end)
+
+--GM辅助瞄准
+MGM:ClientRegister("AIM", function(userId, args)
+	-- CMainGame.SavedAimAssist = (not CMainGame.SavedAimAssist)
+	-- print('CMainGame.SavedAimAssist='..tostring(CMainGame.SavedAimAssist))
+	-- local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	-- role:checkToolAimAssist()
+end)
+
+--GM快速切换地图
+MGM:ServerRegister("MAP", function(userId, args)
+	Modules.LevelManager:GM_ChangeMap(tonumber(args[2]))
+	GameCamera:refreshDataByMap(tonumber(args[2]))
+	local role = SPlayerManager:GetRole(userId)
+	role:KillSelf()
+end)
+
+--GM快速切换地图
+MGM:ServerRegister("FILLAMMO", function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	role:TryFillWeaponAmmo(0.1)
+end)
+
+MGM:ServerRegister("SETKV_KILL&DIE", function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	if not role then
+		LOG('zzj', 'GM 设置玩家助攻&死亡的KV数据错误, 房间内无该玩家数据')
+		return
+	end
+	local career = Modules.CareerStatistics:getUserData(userId)
+	career.Kill = tonumber(args[2] or career.Kill)
+	career.Death = tonumber(args[3] or career.Death)
+	Modules.CareerStatistics:uploadUserDataToCloud(userId)
+end)
+
+--测试不同地图
+MGM:ServerRegister("TESTMAP", function(userId, args)
+	local cardlist = {1,13,21,33,45,57,69,81}
+	local GameCreateStamp = OUtils.time.GetCurrentSecond()
+	local CurGameId =  cardlist[tonumber(args[2])]
+	Bridge:BroadcastMessage(Proto.ServerMSGID.SERVER_GAME_START_PUSH, {gameId = CurGameId, startStamp = GameCreateStamp})
+	Events:Trigger(EventID.GameStart, CurGameId)
+end)
+
+MGM:ServerRegister('DATE', function(userId, args)
+	local stamp = os.time({year=2024, month=2, day=tonumber(args[2]), hour=1, min=0, sec=0})
+	OUtils.TestStamp = stamp
+	Events:Trigger(EventID.NextDay)
+end)
+
+MGM:ClientRegister('JUMP', function(userId, args)
+	local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	local jump_speed = tonumber(args[2] or 0)
+	local gravity = tonumber(args[3] or 9.8)
+	role.node:SetJumpInfo(jump_speed, 0)
+	role.node.Gravity = gravity
+	-- print('设置完成  跳跃速度='..jump_speed..'  重力加速度'..gravity)
+end)
+
+MGM:ClientRegister('TOGGLESCENE', function(userId, args)
+	local workspace = game:GetService('WorkSpace')
+	local map = workspace:FindFirstChild('GameMapName')
+	local allChildren = map.Children
+	for _, child in ipairs(allChildren) do
+		if child.ClassType == 'Model' then
+			if child.Visible then
+				child.Visible = false
+			else
+				child.Visible = true
+			end
+		end
+	end
+end)
+
+--重置玩家储物柜数据
+MGM:ServerRegister('RESET_LOCKERS', function(userId, args)
+	Modules.ItemManager:GM_ResetLockers(userId)
+end)
+
+
+--储物柜加道具 args[2] = itemId(只支持shop_item中的id), args[3] = count(目前只有货币才能超过1) 
+MGM:ServerRegister('ADDITEM', function(userId, args)
+	local itemId = tonumber(args[2] or 0)
+	local count = tonumber(args[3] or 1)
+	if itemId == 0 then
+		LOG('zzj', '增加道具的GM: ADDITEM itemId count(默认1)')
+		return
+	end
+	Modules.ItemManager:GM_AddItem(userId, itemId, count)
+end)
+
+-- 重置活动数据
+MGM:ServerRegister('ACTIVITY', function(userId, args)
+	Modules.ActivityManager:GM_ResetActivity(userId)
+end)
+
+--增加角色经验
+MGM:ServerRegister('EXP', function(userId, args)
+	local exp = tonumber(args[2] or 0)
+	Modules.AccountManager:UpdateAccountData(userId, {exp = exp})
+end)
+
+--测试移动端布局.临时.todo
+MGM:ClientRegister('PLATFORM', function(userId, args)
+	if args[2] == 'PC' or args[2] == 'MOBILE' then
+		OUtils.platform = args[2]
+		UIMainView.setPlatformFightingView()
+	end
+end)
+
+--播放嘲讽
+MGM:ClientRegister('TAUNT', function(userId, args)
+	local index = tonumber(args[2]) or 1
+	local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	role:setTauntState(true, index)
+end)
+
+--清理玩家云服数据 @param 清理指定CloudKey的数据, 若不带key则清理该玩家所有数据
+MGM:ServerRegister('CLEAR_CLOUD', function(userId, args)
+	Modules.CloudManager:ClearPlayerCloud(userId, args[2])
+end)
+
+--切换队伍颜色 @param 队伍ID 1~16
+MGM:ClientRegister('TEAM_COLOR', function(userId, args)
+	local role = CMainGame.playerManager:GetRoleByUserId(userId)
+	if role.handActor and role.handActor:IsLoadFinish() then
+		role:SetRoleTeamColor(role.handActor, tonumber(args[2] or 0))
+	end
+	if role.isLocalPlayer and role.fullbodyActor and role.fullbodyActor:IsLoadFinish()then
+		role:SetRoleTeamColor(role.fullbodyActor, tonumber(args[2] or 0))
+	end
+end)
+
+
+MGM:ServerRegister('AIOFF', function(userId, args)
+	Modules.Ai.SetStatus(false)
+end)
+
+MGM:ServerRegister('AION', function(userId, args)
+	Modules.Ai.SetStatus(true)
+	Modules.Ai:AddAiPlayerNum(tonumber(args[2] or 0))
+end)
+
+MGM:ServerRegister('AIFIRE', function(userId, args)
+	Modules.Ai:SetFireStatus(tonumber(args[2] or 0)==1)
+	-- Modules.Ai:SetFireInterval(tonumber(args[2] or 0))
+end)
+
+MGM:ServerRegister('AISTOP', function(userId, args)
+	Modules.Ai.AUTO_UPDATE = not Modules.Ai.AUTO_UPDATE
+	-- Modules.Ai:SetFireInterval(tonumber(args[2] or 0))
+end)
+
+MGM:ServerRegister('AITEST', function(userId, args)
+	Modules.Ai.TEST = true
+end)
+
+MGM:ServerRegister('TEAMINFO', function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	local tbl = {}
+	for k,v in pairs(SPlayerManager.roles) do
+		table.insert(tbl,{user_id=k, team_id = v.server_team_id})
+	end
+	Bridge:BroadcastMessage(Proto.ServerMSGID.SERVER_TEAMID_RESPONSE, tbl)
+end)
+
+MGM:ServerRegister('ALLMODEL', function(userId, args)
+	local role = SPlayerManager:GetRole(userId)
+	local model_id = tonumber(args[2])
+
+	for k,v in pairs(SPlayerManager.roles) do
+		v:SetModelId(model_id)
+	end
+
+	Bridge:BroadcastMessage(Proto.ServerMSGID.SERVER_MODELID_RESPONSE, {model_id = model_id})
+end)
+
+MGM:ServerRegister('MAINTASK_OVER', function(userId, args)
+	Modules.MainTaskLineManager:forGMTestComplete(userId)
+end)
+
+MGM:ServerRegister('LEAVE', function(userId, args)
+	local role = SPlayerManager:GetRole(2)
+	if role then
+		print('有这么个AI')
+		role:OnLeaveScene()
+	else
+		print('没有这个AI')
+	end
+end)
+
+--跨天GM测试.需要做好时间戳的配合
+MGM:ServerRegister('NEXT_DAY', function(userId, args)
+	Events:Trigger(EventID.NextDay)	
+end)
+
+MGM:ClientRegister('WHO', function(userid, args)
+	local roles = CMainGame.playerManager.roles
+	local tbl = {}
+	for k, v in pairs(roles) do
+		local kv = {}
+		kv.UserId = v.player.UserId
+		kv.ModelId = v.node:GetAttribute('ModelId')
+		kv.ModelPath = v.handActor and v.handActor.ModelId or 'hand actor is nil!'
+		tbl[#tbl + 1] = kv
+	end
+
+	print('RoleModel --->'..OUtils.tab2str(tbl))
+end)
+
+MGM:ClientRegister('DEATHID', function(userid, args)
+	local death_id = tonumber(args[2])
+	local role = CMainGame.playerManager.roles[CMainGame.playerManager.localPlayer.UserId]
+	role.node:SetAttribute('DeathId', death_id)
+end)
+
+MGM:ClientRegister('CHAT', function(userId, args)
+	UIMainView._AddChatitem(userId,args[2])
+	-- print('---------------',args[2])
+end)
+
+MGM:ServerRegister('TESTSEASON', function(userId)
+	local userId1 = tonumber(userId)
+	Modules.TaskManager:TEST(userId1)
+
+end)
+
+
+return MGM

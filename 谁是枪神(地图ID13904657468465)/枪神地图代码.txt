@@ -1,0 +1,1619 @@
+--MConst.lua
+--常量
+local const = {
+
+    --各环境枚举
+    GAME_ENV_TYPE = 
+    {
+        CH_ONLINE = 0, -- 国内正式
+        CH_TEST = 1, -- 国内测试
+        GLOBAL_ONLINE = 10, -- 海外正式
+        GLOBAL_TEST = 11, -- 海外测试
+    },
+
+    GAME_ENV = 0,
+
+    AppID = "1013",
+    AppKey = "18o9007Qc6xNZTrKdcqupsstPQdzYZOPb",
+
+    Version = '0.0.3',  --版本号
+    --[[
+        debug = 1, prerelease = 2(预发版), release = 3(正式版)
+    ]]
+    VersionMode = 1,
+
+    --移动端自定义布局版本号, 每次对该界面的节点名进行了增改(删), 都必须提升版本号, 非常重要!!!
+    MobileLayoutVersion = 1,
+
+    MAX_PLAYER_COUNT = 16,
+    GRAVITY = -9.8, -- 重力
+    DOWNSPEED = -10, --下移速度
+    HOUR = 60*60*1000,
+    MINUTE = 60*1000,
+    RATE = 50, --固定帧率毫秒数
+    TK_SEC = 20, --固定帧率
+    INFINITY = -1, --表示无穷大
+    ENV_PHASE = 2, --每个时间段小时数
+    ENV_PHASE_TOTAL = 12, --一天时间段
+    LSV_RANGE = 256, --lsv距离
+    MINUTES_A_DAY = 24*60, -- 一天的分钟数
+
+    TEAM_OBSERVER = -1, --观察者队伍id
+
+    CAMERA_SMOOTH_SPEED = 0.04,--摄像机平滑速度
+    CAMERA_NEAR_PLAN = 0.1,--相机近裁切面
+
+    BONE_ROT_SPEED = 2, --骨骼旋转过度速度
+
+    TEAM_MAX_PLAYERS = 6, --每支队伍人数上限
+
+    PI = 3.141592654,
+    PI2 = 6.283185307,
+    PIDIV2 = 1.570796327,
+    PIDIV3 = 1.0472,
+    PIDIV4 = 0.785398163,
+    PIDIV6 = 0.523598775,
+    TOPI = 3.141592654/180,
+
+    COS45 = 0.707,
+
+    TRUE = 1,
+    FALSE = 0,
+
+    BLACK_BOX_POS = Vector3.new(-10000,1000,-10000),--小黑屋位置
+	RoleMoveSpeed = 20, --移动速度
+	DefaultFOV = 62, --默认FOV
+    DefaultFOV_InWatch = 70,
+
+    -- 摄像机类型
+    CameraMode = {
+        FIRST = 1,	--第一人称视角
+        DEAD = 2,	    --死亡视角
+        DEAD_FOLLOW = 3,	    --死亡跟随视角，右键旋转，不能切换模式
+        WATCH_FOCUS = 4,	    --观战聚焦视角，右键旋转，空格切换导自由视角，左键换人
+        WATCH_FREE = 5, --观战自由视角，右键旋转，空格切换到观战聚焦视角，左键换人
+        WATCH_READY = 6, --观战准备视角，固定
+        BAG = 7,        --背包界面视角
+        WATCH_TEAMMATE = 8
+    },
+
+    --客户端显示的击中痕迹
+    HitMark = {
+        gun = 'Nova/Envi/test_xy/wire.dds',
+        bow = 'Nova/Envi/test_xy/green.dds',
+    },
+    --客户端显示的击中特效
+    HitEffect = {
+        gun = 'Nova/Envi/test_xy/wire.dds',
+        bow = 'Nova/Envi/test_xy/green.dds',
+    },
+
+    --角色身体类型
+    BodyType ={
+        NONE = 0,  -- 其他类型
+        HUMAN = 1,  --上下半身分离的直立行走，如主角
+        ACTOR = 2,  --上下半身不分离的直立行走，如丧尸
+        CRAWLING = 3,  --多足动物，如熊
+    },
+
+    --角色身体部位
+    BodyPart ={
+        Head = 1,  --头部
+        Spine1 = 2, --躯干   上身
+        Spine2 = 3, --躯干  上身
+        Pelvis = 4, --胯   下身
+        UpperArmL = 5, --左上臂  上身
+        ForeArmL = 6, --左前臂   手
+        UpperArmR = 7,--右上臂  上身
+        ForeArmR = 8,--右前臂  手
+        ThighL = 9, --左大腿  下身
+        CalfL = 10, --左小腿  足
+        ThighR = 11, --右大腿 下身
+        CalfR = 12, --右小腿  足
+        SHIELD = 13,  -- 盾牌
+        BACKBODY = 14, -- 身后
+        BACKJAR = 15,  -- 背后的罐子（自爆丧尸）
+        CRYSTAL = 16,  -- 结晶（普通掉血，并且额外增加血量去除）
+        SHIELD_WEAKNESS = 17, --持盾丧尸弱点
+    },
+
+    --装备减伤对于上面部位
+    EquipDamageDescrease = {
+        'damageDecrease_head_rate',--头部
+        'damageDecrease_bodyU_rate',--躯干
+        'damageDecrease_bodyU_rate',--躯干
+        'damageDecrease_bodyL_rate',--胯
+        'damageDecrease_bodyU_rate',--左上臂
+        'damageDecrease_hand_rate', --'damageDecrease_bodyU_rate',--左前臂
+        'damageDecrease_bodyU_rate',--右上臂
+        'damageDecrease_hand_rate', --'damageDecrease_bodyU_rate',--右前臂
+        'damageDecrease_bodyL_rate',--左大腿
+        'damageDecrease_foot_rate',--'damageDecrease_bodyL_rate',--左小腿
+        'damageDecrease_bodyL_rate',--右大腿
+        'damageDecrease_foot_rate',--'damageDecrease_bodyL_rate',--右小腿
+        '',--盾牌
+        '',--身后
+        '',--背后的罐子（自爆丧尸）
+        --'damageDecrease_hand_rate',--左上臂
+        --'damageDecrease_foot_rate',
+        --'damageDecrease_bodyL_rate',
+        --'damageDecrease_explode_rate'
+    },
+
+    --角色身体部位和装备Index的映射
+    BodyPartToEquipBox = {
+        [1] = 8,  --头部
+        [2] = 5,  --上半身
+        [3] = 11,  --手
+        [4] = 10,  --足
+        [5] = 6,  --下半身
+    },
+
+    --角色特殊姿态
+    SpecialState ={
+        NONE = 0,  --无
+        SIT = 17,  --坐下
+        LIEDOWN = 18, --躺下
+        CLIMB = 19, --攀爬
+        CROSS = 20, --跨越
+        DIZZY = 22, --眩晕
+        ON_VEHICLE = 21, --在车上
+        BOUND = 24, --被束缚
+    },
+
+    --下半身动作权重ID
+    DownBlendID = {
+        IDLE = 1,
+        FORWARD = 2,
+        BACK = 3,
+        LEFT = 4,
+        RIGHT = 5,
+        FORWARD_RIGHT = 6,
+        FORWARD_LEFT = 7,
+        BACK_LEFT = 8,
+        BACK_RIGHT = 9,
+
+        ROLL_F = 22,
+        ROLL_B = 23,
+    },
+
+    --上半身动作权重ID
+    UpBlendID = {
+        IDLE = 11,
+        FORWARD = 12,
+        BACK = 13,
+        LEFT = 14,
+        RIGHT = 15,
+        FORWARD_RIGHT = 16,
+        FORWARD_LEFT = 17,
+        BACK_LEFT = 18,
+        BACK_RIGHT = 19,
+
+        ROLL_F = 20,
+        ROLL_B = 21,
+    },
+
+    --动画权重ID
+    AnimationWeight = {
+        IN_DASH = 32,
+    },
+
+    --角色动作MASK
+    AnimationMask = {
+        NONE = 0,--空手
+        ITEM = 1,--道具
+        HK416 = 2,--枪械HK416
+        AXE = 3,--斧头砍人
+        AWM = 4,--枪械
+        VECTOR = 5,--枪械
+        BANDAGE = 6,--绷带
+        FOOD = 7,--实物，吃
+        DRINK = 8,--饮料，喝
+        INJECTION = 9,--针筒，注射
+        BOMB_TRIGGER = 10,--启动引爆器
+        BOW = 11,--弓箭
+        XM1014 = 12,--枪械
+        G36 = 13,--枪械
+        PSG1 = 14,--枪械
+        G18 = 15,--枪械
+        M249 = 16,--枪械
+        SAW = 17,--电锯
+        DRILL = 18,--电钻
+        NAIL_GUN = 19,--射钉枪
+        TORCH = 20,--火把
+        BOTTLE = 21,--装水的瓶子
+        LANTU = 22,--建造蓝图
+        AK47 = 23,--枪械
+        M16 = 24,--枪械
+        SCAR = 25,--枪械
+        DOUBLE_SHOT_GUN = 26,--枪械
+        M97 = 27,--枪械
+        MPX = 28,--枪械
+        PP19 = 29,--枪械
+
+        VEHICLE_TWO_WHEEL = 30,--两轮载具
+        VEHICLE_FOUR_WHEEL = 31,--四轮载具
+
+        LANCE = 32, --长矛
+        E_TORCH = 33, --手电筒
+
+        ---枪械补充---
+        MK14 = 34,
+        AA12 = 35,
+        SPAS12 = 36,
+        UMP45 = 37,
+        SP5 = 38,
+        M1911 = 39,
+        GUN_93R = 40,
+        RPK = 41,
+        GOLMAGNUM= 42,
+        R700 = 43,
+        MSR = 44,
+        -------------
+        REPAIR_AID = 45,
+        SHOVEL = 46,--铲子
+    },
+
+    AutoTriggerMask = {
+        HOLD_ITEM = 0,--近战武器  拳头等物品
+        HOLD_GUN = 1,--枪械类物品手持
+        --HOLD_GUN_AIM = 2,
+        HOLD_BOW = 2,--手持弓等类型武器
+        HOLD_MACHINE = 3,--手持电锯电钻
+        GUN_GRAB = 30,--枪械的握姿，用于自动跳转
+        TRIGGER = 31,--自动触发的第31位作为一个逻辑上的trigger
+    },
+
+    --动画条件MASK
+    --动画条件MASK在动画树中表示当前的子状态
+    ConditionMask = {
+        --subState
+        IDLE = 0,--空手待机 持有待机
+        TAKE = 1,--拿出 放回
+        PREPARE = 2,--准备 攻击前动作
+        KEEP = 3, --蓄力，保持
+        FIRE = 4,--开火 使用
+        RELOAD = 5, --上弹 装载
+        PULL_PLUG = 6,--拉栓 攻击后动作
+        PORT = 7,--瞄准 枪械专用
+        PORT_FIRE = 8, --瞄准射击 枪械专用
+        DROP = 9, --丢弃
+        RELOAD2 = 10,--额外的换弹动作
+        LOAD = 11,--步枪上膛
+        FISHING_START = 12, --钓鱼抛竿
+        FISHING_HOLD = 13, --钓鱼持有
+        FISHING_END1 = 14, --钓鱼收杆没有鱼
+        FISHING_END2 = 15, --钓鱼收杆有鱼
+        SPECIAL_FIRE = 16,--武器特殊攻击
+        THROW_START = 17,--投掷准备
+        THROW_END = 18,--投掷结束
+        SPECIAL_FIRE2 = 19,--武器的特殊攻击2
+        FIRST_PORT = 20, --第一人称的瞄准动作
+        FISHING_END3 = 21, --钓鱼收杆
+        TRIGGER_BOMB = 22, --引爆炸弹
+        REPAIR = 23, --维修
+    },
+
+    --枪械的左手握持姿势
+    GunGrabType = {
+        NONE = 0, --无特殊姿势，直接用动作中的姿势
+        GRAB = 1, --抓，override
+    },
+
+    AniSpeedGroup = {
+        WALK = 1,--行走相关动作加速
+        DASH = 2,--冲刺相关动作加速
+        HIT = 3,--近战相关动作加速
+        RELOAD = 4,--换弹相关动作加速
+        PORT = 5,--开镜相关的加速
+        PULL = 6,--拉弓相关动作加速
+        VEHICLE_SPEED = 7,--载具倍速
+        PORT_IDLE = 8, --控制一下持枪IDLE的速率，避免第一人称抖动
+    },
+
+    UIActionType = {
+        FirstLogin = 'first_login_action',
+        Login = 'login_action',
+        TheOtherDay = 'other_day_login',
+        Return = 'return_login_action',
+        Show = 'show_actions'
+    },
+
+    AnimPlayMode = {
+        ANIM_MODE_LOOP = 0,
+        ANIM_MODE_ONCE = 1,
+        ANIM_MODE_ONCE_STOP = 2,
+        ANIM_MODE_EDIT = 3,
+    },
+
+    AnimEventType = {
+        FINISH = 0,
+        START = 1,
+        FINISH_ONCE = 5,
+    },
+
+    CharactorActionState = {
+        NONE = 0,
+        START = 1,
+        IDLE = 2,
+        IDLE_MOVE = 3,
+        IDLE_CROUCH_MOVE = 4,
+        FIRE_PREPARE = 5,
+        HOLD = 6,
+        FIRE = 7,
+        PRE_RELOAD = 8,
+        RELOAD = 9,
+        POST_RELOAD = 10,
+        LOAD = 11,
+        CHANGING = 12,
+        FIRE_2 = 13,
+        ONE_SHOT = 14,
+        PRE_FIRE = 15,
+        FIRE_POST_HOLD = 16,
+    },
+
+    CharactorMoveState = {
+        STAY = 1,
+        MOVE = 2,
+    },
+
+    CharactorStanceState = {
+        STAND = 1,
+        CROUCH = 2,
+        JUMP = 3,
+        FLYING = 4,
+        DEAD = 5,
+        TAUNT = 6,
+    },
+
+    MoveDir = {
+        NONE = 1,
+        FORWARD = 2,
+        BACK = 3,
+        LEFT = 4,
+        RIGHT = 5,
+    },
+
+    AnimTrack = {
+        LOWER_BODY = 1,
+        UPPER_BODY = 2,
+    },
+
+    --上半身动作 子状态
+    --和下半身状态逻辑上可以共存的动作
+    --子状态不需要存档 但是需要同步
+    SubState = {
+        IDLE = 41,--空手待机 持有待机
+        TAKE = 42,--拿出 放回
+        --HOLD = 2,--持有
+        PREPARE = 43,--准备 攻击前动作
+        KEEP = 44, --蓄力，保持
+        FIRE = 45,--开火 使用
+        RELOAD = 46, --上弹 装载
+        PULL_PLUG = 47,--拉栓 攻击后动作
+        PORT = 48,--瞄准 枪械专用
+        PORT_FIRE = 49, --瞄准射击 枪械专用
+        DROP = 50, --丢弃
+        RELOAD2 = 51,--额外的换弹动作
+        LOAD = 52,--步枪上膛
+        FISHING_START = 53, --钓鱼抛竿
+        FISHING_HOLD = 54, --钓鱼持有
+        FISHING_END1 = 55, --钓鱼收杆没有鱼
+        FISHING_END2 = 56, --钓鱼收杆有鱼但是没调到
+        SPECIAL_FIRE = 57,--武器特殊攻击
+        THROW_START = 58,--投掷准备
+        THROW_END = 59,--投掷结束
+        SPECIAL_FIRE2 = 60,--武器的特殊攻击2
+        FIRST_PORT = 61, --第一人称的瞄准动作
+        FISHING_END3 = 62,--钓鱼收杆有雨抓鱼
+        TRIGGER_BOMB = 63, --引爆炸弹
+        REPAIR = 64,--修理
+    },
+
+    --动画树层级分配
+    AniLayer = {
+        UP = 0,--上半身
+        DOWN = 1,--下半身
+        FULLBODY = 2,--全身
+        ADDTIVE = 3,--叠加层
+    },
+
+    --角色的默认动作，自带道具
+    DEFAULT_ACTION = {
+        NONE = 0,--空
+        LANTU = 1,--建造蓝图
+    },
+
+    --动画内置曲线
+    AniCurve = {
+        PITCH = 'data0',--角色俯仰曲线
+        PITCH_NECK = 'pitch_neck', --第一人称俯仰曲线
+        LEFT_IK = 'data1',--左手IK曲线
+        CAN_DASH = 'can_dash',--当前动作是否可以冲刺
+        BONE_DECELERATOR = 'bone_decelerator',--枪械缓动的参数
+        IN_DASH = 'in_dash',--是否处于冲刺动作
+        CAN_FIRE = 'can_fire',--是否可以开枪
+        CAN_PORT = 'can_port',--是否可以开镜
+        IN_TAKE = 'in_take', --是否处于拿出状态
+        BUILD_MODE = 'build_mode', --建造模式
+    },
+
+    -- --动画树速率组
+    -- AniRateGroup = {
+    --     GUN_SHOOT_RATE = 1,--枪械射击倍速
+    --     GUN_RELOAD_RATE = 2,--枪械换弹倍速
+    --     HIT_SPEED = 3, --近战攻速分组
+    --     VEHICLE_SPEED = 4,--载具倍速
+    -- },
+
+    --角色移动状态
+    MoveState ={
+        STAY = 4,  --静止
+        WALK = 5, --静走
+        MOVE = 6, --走
+        DASH = 7, --跑
+    },
+
+    --服务器侧返回的击中结果
+    HIT_REPORT = {
+        NORMAL = 0, --普通击中
+        KILL = 1, --击杀
+        WEAKNESS = 2, --击中弱点
+        CRITICAL = 3, --暴击
+        MISS = 4, --闪避
+    },
+
+    --角色开枪状态
+    ShootState = {
+        NORMAL		= 0,	--腰射姿势
+        PORT_ARMS	= 1,	--精确瞄准状态(不开镜)
+        PORT_ARMS_EX	= 2,	--精确瞄准状态(开镜)
+    },
+
+    --角色动作
+    Action = {
+        IDLE		    = 1,	--休闲
+        FORWARD_WALK	= 2,	--向前慢走
+        BACKWARD_WALK	= 3,	--向后慢走
+        LEFTWARD_WALK	= 4,	--向左慢走
+        RIGHTWARD_WALK	= 5,	--向右慢走
+        FORWARD_RUN	    = 6,	--向前跑步
+        BACKWARD_RUN	= 7,	--向后跑步
+        LEFTWARD_RUN	= 8,	--向左跑步
+        RIGHTWARD_RUN	= 9,	--向右跑步
+        SPRINT	= 10,	--冲刺
+        JUMP	= 11,	--跳跃
+        STAND	= 12,	--站起
+        CROUCH	= 13,	--蹲下
+        AIR	    = 14,	--空中
+        LANDING	= 15,	--落地
+        PRONE	= 16,	--趴下
+
+        FIRE	= 17,	--开火
+        RELOAD	= 18,	--换弹
+        TAKEUP	= 19,	--取枪
+        LOAD	= 20,	--上弹
+        TOGGLE	= 21,	--切换快慢机
+        PRECISION	    = 22,	--瞄准动作
+        DAMAGE	        = 23,	--受伤
+        FOLLOWRELOAD	= 24,	--逐发装填的枪械的 后续发装填动作
+        DIE	            = 25,	--死亡
+    },
+
+    --角色健康状态
+    HealthState = {
+        NORMAL	= 1,	--通常状况，可操控，可战斗
+        AGONAL	= 2,	--濒死状态，可被注射器唤醒，可以复活时间到复活，可以转入死亡状态
+        DEAD	= 3		--死亡状态
+    },
+
+    --胶囊体移动结果类型
+    CCMoveResult ={
+        NONE = 0,  --无碰撞
+        SIDE = 1, --侧方碰撞
+        UP = 2, --上方碰撞
+        DOWN = 4,    --下方碰撞
+        SLIDE = 8,    --下滑中
+    },
+
+    --武器的状态
+    WeaponState ={
+        READY  = 0,	-- 通常状态
+        FIRING = 1,	-- 正常射击中
+        FIRING_EX = 2,	-- 射击枪膛留弹  -- 貌似没用到 qkw
+        IDLE = 3, -- 射击后的Idle状态
+        RELOADING = 4, --正常更换弹夹中
+        DECOCKING = 5, --空仓挂机状态
+        PREPARING = 6, --换枪后的准备状态
+        COCKING = 7, --拉枪栓上弹
+        COCKING_PREPARE = 8, --拉枪栓上弹之前的准备状态
+        HOLDING = 9, --射击之前的蓄力状态
+        TAKING = 10, --换枪中状态  -- 貌似没用到 qkw
+        PORTING = 11, --开镜中状态
+        PREPARING_POST = 12, --开枪后的准备状态 -- 貌似没用到 qkw
+        PRE_FIRE = 13, --开枪前的准备状态
+    },
+
+    --角色武器动作子状态
+    WeaponAction = {
+        IDLE = 0,--待机
+        PREPARE = 1,--准备
+        HOLDING = 2,--蓄力
+        FIRE = 3,--射击
+    },
+
+
+    -- 武器快慢机
+    ShootSelectiveMode = {
+        SEMI = 1,	    --半自动,点击开火键，执行一次发射
+        BURST = 2,		--N连发，点击开火键，执行N次发射
+        FULLAUTO = 3,	--全自动,按住开火键，根据武器射速，自动开火
+        SEMI_EX = 4,		--半自动EX,点击开火键，执行一次发射,但是需要拉一次枪栓上膛
+        MODE_NUM = 4,   --总量
+    },
+
+    --武器右键特殊行为枚举
+    WeaponSpecialAttack = {
+        NONE = 0,--无特殊行为
+        CHANGE_MODE = 1,--切换模式
+        FULL_AUTO = 2,--全自动射击
+        SELECTIVE_MODE = 3, --快慢机切换
+        SHOOT_ALL = 4, --一次射击打完所有剩余子弹
+        SWITCH_BULLET = 5, --切换子弹
+        SNIPER_AIM = 6, --准镜
+        M_AIM = 7, --机瞄
+        PLAY_ONESHOT = 8, --播放一个片段，不改变动作模式，具体的作用取决于实际动画设置，比如吃披萨，点炸弹等
+    },
+
+	--当前HUD的显示状态
+	HudStatus = {
+		INVISIBLE = 1,	--HUD不显示状态
+		FADEIN = 2,		--HUD淡入状态
+		VISIBLE = 3,	--HUD显示状态
+		FADEOUT = 4		--HUD淡出状态
+	},
+
+    --常量设置
+    GameConst = {
+        --MaxShotsFired = 30, --连射数最大值
+        StanceChangeAccuracySpeed = 10, -- 姿态变化导致的离散值变化速度（/毫秒）
+        ShoulderExYaw = 0.15, --越肩Ex视角的yaw偏移
+        ShoulderAimYaw = 0.15, --越肩Aim视角的yaw偏移
+    },
+
+    --状态ID 和common.proto的STATE_TYPE--对应
+    StateMethod = {
+        'Stand',
+        'Crouch',
+        'Air',
+        'Stay',
+        'Walk',
+        'Run',
+        'Dash',
+        'Jump',
+        'Land',
+        'Idle',
+        'Attack',
+        'Reload',
+        'Dance',
+        'Hurt',
+        'Born',
+        'Dead',
+        'Sit',
+        'LieDown',
+        'Climb',
+        'Cross',
+        'OnVehicle',
+        'Dizzy',
+        'Prone',
+    },
+
+    --角色类型
+    CHARACTOR_TYPE = {
+        HUMAN = 1,--人类
+        ANIMAL = 2,--动物
+        ZOMBIE = 3,--丧尸
+    },
+
+
+    --武器类型
+    WeaponType = {
+        --武器序列
+        FIST = 1, --拳头
+        GUN = 2, --枪
+        KNIFE = 3, --匕首等单手武器
+        FUTOU = 4, --斧头等双手武器
+        BOW = 5, --弓箭类
+        MACHINE = 6, --机械类
+        TOUZHI = 7, --投掷类
+        ITEM = 9,--普通道具类
+    },
+    --武器子类型
+    WeaponSubType = {
+        --枪序列
+        PISTOL = 'PT', --手枪
+        SUBMACHINE = 'SMG', --冲锋枪
+        RIFLE = 'AR', --步枪
+        SNIPER = 'SR', --狙击枪
+        MACHINEGUN = 'LMG', --机枪
+        SHOTGUN = 'SG', --霰弹枪
+        --弓
+        BOW = 'bow',
+        --机械类
+        CHAINSAW = 'CS', --电锯
+        ELEDRILL = 'ED', --电钻
+        PROPANETORCH = 'PTO' --喷枪
+    },
+
+    --攻击方式类型
+    WeaponAttackType = {
+        NORMAL= 0, --正常
+        MELEE_TREE = 1, --砍树 melee
+        MELEE_MINE = 2, --挖矿 melee
+        MELEE_DIG = 3, --挖掘 melee
+        WATERFETCH = 4, --取水 item
+    },
+    
+    --动作后缀类型
+    ActionPrefix ={
+        '', --拳头
+        '_M4', --枪 暂时这样，以后会分成不同类型枪
+        '_knife', --匕首
+        '_futou', --斧头
+        '_gong', --弓箭
+        '_dianju', --机械类
+        '_throwing', --投掷类
+        PT = '_G18', --手枪
+        SMG = '_VECTOR', --冲锋枪
+        AR = '_M4', --步枪
+        SR = '_M4', --狙击枪
+        LMG = '_M249', --机枪
+        SG = '_M4', --霰弹枪
+        CS = '_dianju', --电锯
+        ED = '_dianzuan', --电钻
+    },
+    --武器动作MASK
+    ActionMASK ={
+        '', --拳头
+        '_M4', --枪 暂时这样，以后会分成不同类型枪
+        '_knife', --匕首
+        '_futou', --斧头
+        '_gong', --弓箭
+        '_dianju', --机械类
+        '_throwing', --投掷类
+        PT = '_G18', --手枪
+        SMG = '_VECTOR', --冲锋枪
+        AR = '_M4', --步枪
+        SR = '_M4', --狙击枪
+        LMG = '_M249', --机枪
+        SG = '_M4', --霰弹枪
+        CS = '_dianju', --电锯
+        ED = '_dianzuan', --电钻
+    },
+    --装备位类型 与下方身体部位对应
+    EquipType={
+        HEAD = 1, --头部
+        GLASS = 2, --墨镜
+        HAIR = 3, --发型
+        HAT = 4, --帽子
+        MASK = 5, --口罩
+        SHIRT = 6, --上衣
+        BAG = 7, --背包
+        GLOVE = 8, --手套
+        PANT = 9, --裤子
+        SHOE = 11, --鞋子
+        WEAPON = 12, --武器
+    },
+    --身体部位
+    SuitPart ={
+        'head',--头部
+        'eye',--眼镜
+        'hair',--发型
+        'hair',--头戴装饰
+        '',--口罩
+        'upperbody',--上身
+        '',--背包
+        'hand',--手部
+        'lowerbody',--下身
+        '',--腿部挂件
+        'foot'--鞋子
+    },
+
+    AreaType = {
+        Box = 2,
+        Sphere = 3,
+    },
+
+    --武器挂载点
+    WeaponSocket ={
+        '',--拳头
+        'gun',--枪
+        'tool',--匕首
+        'tool',--斧头
+        'gong',--弓箭
+        PT = 'handgun', --手枪
+    },
+
+    --道具使用方式动作
+    ItemUseType = {
+        'fire_cure3', --吃
+        'fire_cure2', --喝
+        'fire_cure1', --绷带
+    },
+    --道具使用方式动作时间
+    ItemUseTypeTime = {
+        2000, --吃
+        2000, --喝
+        2500, --绷带
+    },
+
+    --动作标记位
+    ActionTag = {
+        NONE = 0, --都不
+        DOWN = 1, --下半身
+        UP = 2,--上半身
+        ALL = 3, --全身
+    },
+
+    --移动方式
+    MoveType = {
+        AUTO = 1, --位置直接移动，不走胶囊体和navmesh，raycast判断碰撞，停止或继续
+        NAVMESH = 2, --寻路移动，走navmesh，可打断
+        CONTROL = 3, --控制移动，玩家操作控制，走胶囊体移动
+        PHYS = 4, --模拟物理移动，不走胶囊体和navmesh，raycast判断碰撞，停止或继续
+    },
+
+    -- 移动大方向
+    MoveBigDirection = {
+        NONE = 0,
+        FORWARD = 1,
+        BACK = 2,
+        LEFT = 3,
+        RIGHT = 4,
+        FORWARD_L = 5,
+        FORWARD_R = 6,
+        BACK_L = 7,
+        BACK_R = 8
+    },
+
+    --聚焦状态
+    FocusState = {
+        NONE = 1, --无状态
+        Neutral = 2, --中立状态
+        FRIEND = 3, --友方
+        ENEMY = 4 --敌方
+    },
+
+    --buff类型
+    BuffType = {
+        GOOD = 1, --增益
+        Neutral = 2, --中立
+        BAD = 3 --减益
+    },
+
+    --枪配件
+    GunPart = {
+        SIGHT = 1,          --瞄具
+        MAGAZINE = 2,       --弹匣
+        BULLET = 3,         --子弹
+        GRIP = 4,           --握把
+        BUTTSTOCK = 5,      --枪托
+        MUZZLE = 6,         --枪口
+        BARREL = 7,         --枪管
+        HAND_GUARD = 8,     --护木
+        HANG_UP = 9,        --上挂
+        HANG_DOWN = 10      --下挂
+    },
+    --模块改装位置
+    ModPos = {
+        'miaoju',          --瞄具1
+        'danxia',       --弹匣2
+        'bullet',         --子弹3
+        'woba',           --握把4
+        'qiangtuo',      --枪托5
+        'qiangkou',         --枪口6
+        'qiangguan',         --枪管7
+        'humu',     --护木8
+        'shanggua',        --上挂9
+        'xiagua',      --下挂10
+    },
+    --模块改装位置
+    ModPosAdd = {
+        '',          --瞄具1
+        '',       --弹匣2
+        '',         --子弹3
+        '',           --握把4
+        '',      --枪托5
+        '',         --枪口6
+        'qiangkou_p',         --枪管7
+        '',     --护木8
+        '',        --上挂9
+        '',      --下挂10
+    },
+    --item状态
+    ItemState = {
+        TRIGGER_PULL = 1,          --扣动扳机
+        TRIGGER_RELEASE = 2,       --松开扳机
+        RELOAD = 3,         --上弹
+        BULLET = 4,         --更新子弹数
+        FLYING = 5,         --飞翔
+        DURABILITY = 6,         --耐久度
+        SELECTIVE = 7,         --快慢机
+        USE = 8,         --使用了
+        SPECIAL = 9,         --使用特殊效果
+    },
+
+    DoorType = {
+        NONE = 0,
+        PASSWORD = 1,
+        LIMIT = 2,
+        KEY = 4
+    },
+
+	AudioSoundType ={
+		Music = 0, --音乐
+		TWOD = 1, --2D
+		THIRDD =2, --3D
+		UI =3, --UI
+	},
+
+    DamageType = {
+        NORMAL = 1,   --武器伤害
+        FALL = 2,   --跌落伤害
+        BUFF = 3,  --buff持续伤害
+        EXPLODE = 4,  --爆炸伤害
+        SUICIDE = 5,  -- 自杀
+        CONTACT = 6, --物理碰撞，如树砸，空投箱子砸
+        AREA=7, -- 区域伤害
+    },
+
+    -- 物体材质类型
+    PhysicTag = {
+        NONE = 0,
+        DEFAULT = 1,   -- 默认
+        ROCK = 2,   --石头
+        SOIL = 4,   --泥土
+        CREATURE = 8,  --肉体
+        METAL = 16,  --金属
+        COMMON = 32,  --公共（作用于沙发雨棚）
+        WATER = 64, --水
+        WOOD = 128, -- 木
+        PLANT = 256, -- 植物
+        GLASS = 512, -- 玻璃
+        ENERGY_CAN = 1024 --能量罐
+    },
+
+    TerrainPhysicTag = {
+        Sand = 0,  --砂土
+        Grass = 1,  -- 草地
+        DarkStone = 2,  --深色石地
+        LightSoil = 3,  --浅色泥地
+        LightStone = 4,  --浅色石地
+        StoneBrick = 5,  --石砖地
+        SilverSand = 6,  --沙地
+        RedRock = 7,  --红岩地
+        Black = 8,  --黑地
+        DarkSoil = 9,  --深色泥地
+    },
+
+    InputCustomEvent = {
+        UI_FRONT = 1,
+        UI_BACK = 2,
+        UI_LEFT = 3,
+        UI_RIGHT = 4,
+        UI_SHOOT = 5,
+        UI_FIST = 6,
+        UI_KNIFE = 7,
+        UI_RELOAD = 8,
+        UI_CROUCH = 9,
+        UI_JUMP = 10,
+        UI_RECYCLE = 11,
+        UI_REPAIR = 12,
+        UI_BRAKE = 13,
+        UI_WHISTLING = 14,
+        UI_RESET=15
+    },
+
+    PhysXShapeType = {
+        Unknown = 0,
+        Plane = 1,
+        Box = 2,
+        Sphere = 3,
+        Capsule = 4,
+        ConvexMesh = 5,
+        TriangleMesh = 6,
+    },
+
+    --爆炸方式
+    ExplodeType = {
+        COUNT_DOWN = 1, --计时式
+        CONTACT = 2, --碰撞式
+        HIT = 3,   --打爆式
+        CONTROL = 4, --引爆式
+    },
+
+    ContactType = {
+        ADSORB = 1, --吸附
+        BOUNCE = 2, --弹跳
+        STOP = 3, --停住
+    },
+
+    EffectType = {
+        DAMAGE = 1, --造成伤害
+        BUFF_AREA = 2, --留下buff区域
+    },
+    BasePointSelectType = {
+        FixPoint = 1,    -- 固定点x,y,z
+        GlobalPointVal = 2,  -- 全局坐标变量
+        TargetObjPoint = 3,  -- 目标物体坐标偏移
+        TargetObjBodyRandom = 4  -- 目标物体内空间随机
+    },
+
+    RangeType = {
+        Circle = 1,
+        Box = 2,
+    },
+
+    FixFunctionType = {
+        Dist1 = 1,    -- 距离修正1
+    },
+
+    LogicEffectType = {
+        Damage = 1,
+    },
+
+    -- 位运算组合
+    CampRelationshipType = {
+        Same = 1, --同阵营
+        Diff = 2, --不同阵营
+    },
+
+    CampRelation = {
+        enemy = 1,
+        neutral = 2,
+        friend = 3
+    },
+
+    RIGHT = { --和teamRight是兼容的，改的时候要注意
+        BUILD = 1,    -- 是否可建造（吸附）
+        RECYCLE = 2,  -- 建筑可回收
+        USE = 3,     -- 柜子，机枪塔装弹，各种台的使用
+        FIX = 4,   -- 建筑可维修
+        DESTROY = 5,   -- 能不能被打受到伤害
+        CAN_HURT = 6,   -- 能不能被打受到伤害
+        IS_ENEMY = 7    -- 是否敌对
+    },
+
+    TriggerEvent = {
+        Enter = 1,
+        Exit = 2
+    },
+
+    LogicSoundType = {
+        Breath = 1,
+        Walk = 2,
+        Run = 3,
+        Jump = 4,
+        Landing = 5,
+        CrouchDown = 6,
+        CrouchDownMove = 7,
+        FistAttack = 8,
+        BeAttack = 9,
+        Death = 10,
+        UseItem = 11
+    },
+
+    CullDistType = {
+        Close = 1,  -- 很近
+        Near = 2,   -- 较近
+        Mid = 3,    -- 适中
+        Far = 4,    -- 远
+        FarAway = 5, -- 很远
+        SuperFar = 6,   -- 超远1
+        SuperFra2 = 7,  -- 超远2
+    },
+    CullDist = {
+        10,15,50,100,300,500,1000
+    },
+
+    ActorPyToDispearOrDie = -400,
+
+    TimeLineNodeState = {
+        Init = 1,
+        Running = 2,
+        Stopped = 3,
+    },
+
+    TimeLineEvent = {
+        None = 0,
+        UITipsClose = 1,  -- UITips关闭了
+        UIClickBtn = 2,  -- UI点击了按钮
+        PickupItem = 3,  -- 捡起物品
+        FocusTarget = 4,  -- 瞄准了目标
+        AttackTarget = 5, -- 击中了目标
+        KillTarget = 6, -- 杀死了目标
+        buildTarget = 7,--建造了建筑
+        GetupItem = 8,  --获得了道具
+        Ready = 9
+    },
+
+    -- 界面按钮和图标等引导
+    GuideBtnId = {
+        Move = 1, -- 移动
+        Jump = 2, -- 跳跃
+        crouch = 3,  -- 蹲下
+        Item = 4, -- 下方的道具
+        UseItem = 5, -- 使用道具
+        IconSatiety = 6, -- 饱食度图标
+        Reload = 7, -- 换弹
+        Attack = 8, -- 攻击
+        Aim = 9, -- 开镜
+        OpenBag = 10, -- 打开背包
+        ItemInBag = 11, -- 背包界面的道具
+        CloseBag = 12, -- 关闭背包
+        IconHealth = 13, -- 健康值图标
+        Weapon = 14, -- 武器槽的武器
+        UseItemInBag = 15, -- 背包中使用物品建
+        ChangeView = 16,  -- 调整视角
+        PickUp = 17,
+        PickUpList = 18,
+        PickUpBtn = 19,
+        Setting = 20
+    },
+
+    SoundType = {
+        GameSound = 1,   -- 游戏内音效
+        UISound = 2,  -- UI音效
+        BGM = 3,  -- 背景音乐
+    },
+
+    --实时击杀类型
+    RealTimeKillType = {
+        Normal = 1, --高光击杀
+        Dominate = 2, --支配
+        Revenge = 3, --复仇
+        Suicide = 4, --自杀
+        Accident = 5 --意外死亡
+    },
+}
+
+const.VECZERO = Vector3.new() --默认
+const.VECONE = Vector3.new(1,1,1) --默认
+const.VECUP = Vector3.new(0,1,0) --默认
+const.VECDOWN = Vector3.new(0,-1,0) --默认
+const.OFFSET_PORT = Vector3.new(0,0,0.6)--瞄准镜的偏移值
+const.LOCAL_SCALE_PORT = 0.62  -- 8倍镜模型初始缩放
+
+
+const.AnimRate = 30   -- 动画帧率
+const.AnimHurtBlendWeight = 0.5   -- 受伤动画的叠加权重
+
+const.MaterialID = {
+    NONE = 0, --普通
+    MELEE = 1,  --近战
+    METAL = 30,--金属
+}
+
+--碰撞组枚举（没有计算静态物体，引擎自动添加,最多16位玩家）
+const.CollisionType = {
+    NO_PUSH = 0, --场景中的block
+    LOCALPLAYER = 1, --本地碰撞组，专指本地玩家角色
+    STATICOBJ = 2,-- 可碰撞模型
+    NETPLAYER = 3,-- 网络角色碰撞组，如怪物和其他玩家
+	DYNAMICOBJ = 4,--实体子弹等动态物理物体
+	TRIGGER=5, --区域触发器,
+    PROP = 6,--道具（目前处理的是死亡道具）
+    XXX = 7,-- 7有异常，不用
+    LADDER = 8 ,--梯子
+    WATER = 9,
+    
+    INESSENTIAL = 10,--无关紧要的，不参与碰撞和射线检测
+    BOXFORPHYSICSBULLET = 11,--专用于挨物理子弹打
+
+    AIRWALL = 12,   --空气墙, 只和角色有碰撞
+
+    SELF_BODY = 14,--自己身体部件，为了做到射线不检测自己身体
+    OBSERVE = 15, --观察者 用于区分开不可被子弹检测
+    PLAYERTEAM_1 = 16, PLAYERTEAM_2 = 17, PLAYERTEAM_3 = 18, PLAYERTEAM_4 = 19,--玩家队伍id绑定
+    PLAYERTEAM_5 = 20, PLAYERTEAM_6 = 21, PLAYERTEAM_7 = 22, PLAYERTEAM_8 = 23,--玩家队伍id绑定
+    PLAYERTEAM_9 = 24, PLAYERTEAM_10 = 25, PLAYERTEAM_11 = 26, PLAYERTEAM_12 = 27,--玩家队伍id绑定
+    PLAYERTEAM_13 = 28, PLAYERTEAM_14 = 29, PLAYERTEAM_15 = 30, PLAYERTEAM_16 = 31,--玩家队伍id绑定
+
+}
+
+--物理模拟组枚举
+const.SimulationType = {
+    GROUND = 1,--lbit(0),
+    WHEEL = 2,--lbit(1),
+    CHASSIS = 4,--lbit(2),
+    STATIC_ITEM = 8,--lbit(3),
+    DYNAMIC_ITEM = 16,--lbit(4),
+    STATIC_BUILDING = 32,--lbit(5),
+    DYNAMIC_BUILDING = 64,--lbit(6),
+    TREE = 128,--lbit(7),
+    ROLE = 256,--lbit(8),
+    MONSTER = 512,--lbit(9),
+    POOL = 1024,--lbit(10),
+    ROLE_POOL_TRIGGER = 2048,--lbit(11),
+    AREA_TRIGGER = 4096,--lbit(12),
+    AIR_WALL = 8192,--lbit(13),
+    STUMP = 32768,--lbit(15),
+
+    DYNAMIC_ITEM_AGAINST = 34039,
+    DROP_BOX_AGAINST = 34023,
+    FALL_TREE_AGAINST = 9189,
+}
+
+-- 碰所有
+local CollisionGroupAll = 1791 --1+2+4+8+16+32+64+128+512+1024
+
+-- 碰所有，除了玩家
+local CollisionGroupAllNoPlayer = function()
+    return CollisionGroupAll - const.CollisionType.LOCALPLAYER - const.CollisionType.NETPLAYER
+end
+
+const.CollisionGroup = {
+    All = CollisionGroupAll,
+    AllNoPlayer = CollisionGroupAllNoPlayer(),
+    -- 子弹击中
+    Bullet = {
+		const.CollisionType.WATER,
+		const.CollisionType.STATICOBJ,
+		-- const.CollisionType.NETPLAYER,
+        const.CollisionType.PLAYERTEAM_1, const.CollisionType.PLAYERTEAM_2, const.CollisionType.PLAYERTEAM_3, 
+        const.CollisionType.PLAYERTEAM_4, const.CollisionType.PLAYERTEAM_5, const.CollisionType.PLAYERTEAM_6, 
+        const.CollisionType.PLAYERTEAM_7, const.CollisionType.PLAYERTEAM_8, const.CollisionType.PLAYERTEAM_9, 
+        const.CollisionType.PLAYERTEAM_10, const.CollisionType.PLAYERTEAM_11, const.CollisionType.PLAYERTEAM_12,
+        const.CollisionType.PLAYERTEAM_13, const.CollisionType.PLAYERTEAM_14, const.CollisionType.PLAYERTEAM_15,
+        const.CollisionType.PLAYERTEAM_16
+	},
+
+    AIPlayer = {
+        const.CollisionType.WATER,
+		const.CollisionType.STATICOBJ,
+        const.CollisionType.PLAYERTEAM_1, const.CollisionType.PLAYERTEAM_2, const.CollisionType.PLAYERTEAM_3, 
+        const.CollisionType.PLAYERTEAM_4, const.CollisionType.PLAYERTEAM_5, const.CollisionType.PLAYERTEAM_6, 
+        const.CollisionType.PLAYERTEAM_7, const.CollisionType.PLAYERTEAM_8, const.CollisionType.PLAYERTEAM_9, 
+        const.CollisionType.PLAYERTEAM_10, const.CollisionType.PLAYERTEAM_11, const.CollisionType.PLAYERTEAM_12,
+        const.CollisionType.PLAYERTEAM_13, const.CollisionType.PLAYERTEAM_14, const.CollisionType.PLAYERTEAM_15,
+        const.CollisionType.PLAYERTEAM_16
+	},
+
+    ClientPlayersOnly = {
+        const.CollisionType.PLAYERTEAM_1, const.CollisionType.PLAYERTEAM_2, const.CollisionType.PLAYERTEAM_3, 
+        const.CollisionType.PLAYERTEAM_4, const.CollisionType.PLAYERTEAM_5, const.CollisionType.PLAYERTEAM_6, 
+        const.CollisionType.PLAYERTEAM_7, const.CollisionType.PLAYERTEAM_8, const.CollisionType.PLAYERTEAM_9, 
+        const.CollisionType.PLAYERTEAM_10, const.CollisionType.PLAYERTEAM_11, const.CollisionType.PLAYERTEAM_12,
+        const.CollisionType.PLAYERTEAM_13, const.CollisionType.PLAYERTEAM_14, const.CollisionType.PLAYERTEAM_15,
+        const.CollisionType.PLAYERTEAM_16
+    },
+
+    --下蹲到站立检测
+    Crouch2Stand = {
+        const.CollisionType.STATICOBJ
+    },
+
+    -- -- 近战武器攻击
+    -- MeleeLocal = const.CollisionType.TERRAIN + const.CollisionType.NETPLAYER + const.CollisionType.COL_FOCUS + const.CollisionType.VEHICLE+
+    --     const.CollisionType.NOCOL_FOCUS_HIT,
+    -- -- 道具，物件等物品出生时，贴地的碰撞组
+    -- BornCheck = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.COL_FOCUS,
+    -- -- AI近战overlap攻击
+    -- MeleeAttack = const.CollisionType.LOCALPLAYER + const.CollisionType.NETPLAYER + const.CollisionType.VEHICLE +
+    -- const.CollisionType.COL_NOFOCUS + const.CollisionType.COL_FOCUS + const.CollisionType.NOCOL_FOCUS_HIT,
+
+    -- -- AI怪随机位置刷新检查（多了个水）
+    -- AIBornCheck = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.COL_FOCUS + const.CollisionType.VEHICLE + const.CollisionType.WATER,
+
+    -- -- AI怪出生贴地
+    -- AIBornGround = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.COL_FOCUS + const.CollisionType.VEHICLE,
+
+    -- -- AI视野射线检测
+    -- AIView = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN +
+    --     const.CollisionType.COL_FOCUS + const.CollisionType.CROSS + const.CollisionType.WATER,
+
+    -- AIProjectile = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.NETPLAYER + const.CollisionType.LOCALPLAYER +
+    --     const.CollisionType.COL_NOFOCUS + const.CollisionType.COL_FOCUS + const.CollisionType.CROSS +
+    --     const.CollisionType.VEHICLE + const.CollisionType.PROJECTILE + const.CollisionType.NOCOL_FOCUS_HIT + const.CollisionType.WATER + const.CollisionType.VEHICLE_PLAYER,
+
+    -- CropReborn = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.LOCALPLAYER + const.CollisionType.NETPLAYER + const.CollisionType.COL_NOFOCUS +
+    --     const.CollisionType.COL_FOCUS + const.CollisionType.CROSS + const.CollisionType.BUILD + const.CollisionType.VEHICLE,
+
+    -- --雨水收集器高度遮挡检测
+    -- RainwaterCheck = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.COL_FOCUS,
+    -- --拾取道具检测
+    -- PickUpItem = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.COL_FOCUS + const.CollisionType.NOCOL_FOCUS + const.CollisionType.CROSS,
+
+    -- ClimbCheck = const.CollisionType.NO_PUSH + const.CollisionType.TERRAIN + const.CollisionType.COL_FOCUS + const.CollisionType.COL_NOFOCUS + const.CollisionType.CROSS +
+    --     const.CollisionType.VEHICLE
+}
+const.CollisionGroup.AILaser = const.CollisionGroup.AIProjectile
+
+
+const.Game = {
+    Difficulty = {
+        Easy = 1,   --简单
+        Normal = 2, --普通
+        Hard = 3,  --困难
+    },
+
+    Param = {
+        Energy_Cost_Rate = 1001,
+        Hunger_Cost_Speed = 1002,
+        Water_Cost_Speed = 1003,
+        Make_Noise_Rate = 1004,
+        Exp_Rate = 1005,
+        Debuff_Last_Time_Rate = 1006,
+        Dead_Lost_Exp_Rate = 1007,
+        Dead_Lost_Item_Type = 1008, --0不掉落，1背包，2全部
+        Dead_Lost_Item_Exist_Time = 1009,
+        Dead_Lost_Skill_Lv = 1010,
+        Fall_Damage_Enable = 1011,
+        Born_Protect_Time = 1012,
+        Weapon_Cost_Durability_Enable = 1013,
+        Commit_Suicide_Enable = 1014,
+        Escape_Enable = 1015,
+        Temperature_Effect_Enable = 1016,
+
+        Player_Kill_Enable = 1017,
+        Team_Enable = 1018,
+        Team_Hurt_Enable = 1019,
+        Team_Building_Hurt_Enable = 1020,
+        Map_Show_Teammate_Enable = 1021,
+
+        Zombie_Emit_Rate = 1022,
+        Zombie_Hp_Rate = 1023,
+        Zombie_Atk_Rate = 1024,
+        Elite_Zombie_Emit_Rate = 1025,
+        Boss_Emit_Rate = 1026,
+        WanderZombie_DayMaxNum = 1027,
+        WanderZombie_NightMaxNum = 1028,
+        WanderZombie_SpecialWeightRate = 1029,
+        WanderZombie_BossWeightRate = 1030,
+        Blood_Moon_Safe_Days = 1031,
+        Blood_Moon_Start_Prob = 1032,
+        Blood_Moon_Add_Prob = 1033,
+        Blood_Moon_Atk_Improve_Rate = 1034,
+        Blood_Moon_Hp_Improve_Rate = 1035,
+        Blood_Moon_Exp_Rate = 1036,
+        Blood_Moon_Animal_Hurt_Enable = 1037,
+        Pollute_Core_Emit_Rate = 1038,
+        Pollute_Core_Hp_Rate = 1039,
+        Pollute_Core_Monster_Limit = 1040,
+        Pollute_Core_Kill_Monster_Enable = 1041,
+
+        Vehicle_Refresh_Rate = 1042,
+        Vehicle_Hp_Ceil = 1043,
+        Vehicle_Hp_Floor = 1044,
+        Vehicle_Gasoline_Ceil = 1045,
+        Vehicle_Gasoline_Floor = 1046,
+        Vehicle_Hurt_Rate = 1047,
+        Vehicle_Gasoline_Cost_Rate = 1048,
+
+        Item_Emit_Rate = 1049,
+        Item_Refresh_Time = 1050,
+        Item_Disappear_Time = 1051,
+        Zombie_Drop_Item_Rate = 1052,
+        Elite_Zombie_Drop_Item_Rate = 1053,
+        Boss_Drop_Item_Rate = 1054,
+        Bullet_Num_Random_Enable = 1055,
+        Weapon_Durability_Random_Enable = 1056,
+        Airdrop_Enable = 1057,
+        Airdrop_Cycle_Day = 1058,
+        Airdrop_Range = 1059,
+
+        Time_Elapse_Rate = 1060,
+
+        Rain_Rate = 1061,
+        Rainy_Day_Min_Duration = 1062,
+        Rainy_Day_Max_Duration = 1063,
+
+        Drop_Equip_Dur_Rate = 1064,
+        Player_Building_Hurt_Enable = 1065,
+        Normal_Zombie_Chase_Speed_Rate = 1066, -- 普通丧尸追击速度修改倍率
+        Normal_Zombie_Hurt_Reaction_Type = 1067,  -- 普通丧尸受伤反应类型
+        Zombie_Venom_Rate = 1068, -- 丧尸毒液化概率，0-100
+        Blood_Moon_RecycleDay = 1069, -- 红月周期天数
+        Blood_Moon_ResetRecycle = 1070,  -- 红月是否重置周期  0 or 1
+        Thunder_bolt_Rate = 1071, --落雷概率
+        Zombie_Armed_Rate = 1072, -- 丧尸武器化概率  0-100
+        ZombieRising_Monster_level = 1073, -- 丧尸围城，怪物等级强度增加
+        ZombieRising_Monster_Number = 1074, -- 丧尸围城，怪物数量增强
+        Radiate_Zombie_Harm = 1075, --辐射丧尸伤害
+        BUILD_BEARING_ONOROFF = 1076, --开启建筑承重系统
+
+        Vehicle_Engine_Rate = 1077, --发动机生成概率
+        Vehicle_Battery_Rate = 1078, --电瓶生成概率
+    },
+
+    --buff类型
+    BuffType = {
+        BUFF = 1,   --增益
+        Normal = 2, --正常
+        DEBUFF = 3,  --减益
+    },
+    --buff元素类型.支持buff位与叠加
+    BuffElementType = {
+        NORMAL = 0,   --无
+        FIRE = 1,   --火
+        LIGHTING = 2, --电
+        POISON = 4,  --毒
+        DISEASE = 8,  --疾病
+        RADIATION = 16,  --辐射
+    },
+
+    EnumGameState = {
+        None = 0,
+        Vote = 1,
+        Gaming = 2,
+        Liquidation = 3,
+        VoteShow = 4	--投票结果展示
+    },
+}
+
+--货币类型
+const.CurrencyType = {
+    Default = 0,    --免费
+    Rmb = 1,    --rmb直购
+    MiniCoin = 2,   --mini币
+    Gold = 3,   --金币
+    AdvCoin = 4,    --广告币
+}
+
+--商品类型
+const.GoodsType = {
+    ITEM = 1,
+    PACKAGE = 2,
+    GIFT = 3,
+    COIN = 4
+}
+
+--设置
+const.Set = {
+    VO_SUBTITLE      = "VO_SUBTITLE", -- 开关：vo字幕
+    REDUCE_WEAPON    = "REDUCE_WEAPON", --开关：减少手和武器占据空间
+    HIDE_WEAPON      = "HIDE_WEAPON",--开关：隐藏手和武器
+    LEADER_VIGNETTE  = "LEADER_VIGNETTE", --开关：队长光晕
+    NO_TEXTURES      = "NO_TEXTURES",--开关：去掉贴图
+    SWITCH_CHAT      = "SWITCH_CHAT",--开关：聊天
+    FOV              = "FOV",--进度条：FOV
+    CROSSHAIR        = "CROSSHAIR",--RGB：准星颜色
+    DISPLAY_NAMES    = "DISPLAY_NAMES",--开关：显示玩家昵称
+    KILL_EFFECTS     = "KILL_EFFECTS",--开关：击败效果
+    RAGDOLLS         = "RAGDOLLS",--开关：布娃娃
+    BASIC_SKINS      = "BASIC_SKINS",--开关：低细节皮肤
+    PARTICLE_PHYSICS = "PARTICLE_PHYSICS",--开关：粒子特效
+    GRAPHICS_QUALITY = "GRAPHICS_QUALITY",--进度条：图形质量
+    ANNOUNCERS       = "ANNOUNCERS",--开关：旁白
+    MEGAPHONES       = "MEGAPHONES",--开关：扩音器
+    MENU_MUSIC       = "MENU_MUSIC",--开关：菜单音乐
+    OPERATE_MODE     = "OPERATE_MODE",--操作模式选择
+    ASSIST_SHOOT     = "ASSIST_SHOOT",--辅助射击
+    VIEW_DISTANCE    = "VIEW_DISTANCE",
+    SOUND            = "SOUND",--音效
+    VOLUME           = "VOLUME",--音量
+    BRIGHTNESS       = "BRIGHTNESS",--画面亮度
+    SENSITIVITY      = "SENSITIVITY",--灵敏度
+    REAL_TIME_LIGHT  = "REAL_TIME_LIGHT",--事实光影
+    FPS_LIMIT        = "FPS_LIMIT",--限帧
+
+}
+
+--金色武器类型
+const.GoldWeaponType = {
+    NORMAL = 0, --普通武器
+    GOLDEN_GUN = 1, --金枪
+    GOLDEN_MELEE = 2, --金刀
+}
+
+--枪械类型
+const.GunType = {
+    HandGun = 1,    --手枪
+    RifleGun = 2,      --步枪
+    SubmachineGun = 3, --冲锋枪
+    ShotGun = 4,    --霰弹枪
+    MachineGun = 5, --机枪
+    GrenadeGun = 6, --榴弹枪
+    SniperRifleGun = 7, --狙击枪
+    SpecialGun = 8, --特殊
+}
+
+const.OGGSOUND = {
+    button_click   = "Art/Sound/button_click.wav", --按钮点击
+    buy_success    = "Art/Sound/buy_success.wav",--商城-购买成功
+    open_box       = "Art/Sound/open_box.wav", --商城-开箱子
+    cabinet_click  = "Art/Sound/cabinet_click.wav", --储物柜-更换成功
+    vote           = "Art/Sound/vote.wav", --投票贴印章音效
+    birth          = "Art/Sound/birth.wav", --角色-出生
+    jump           = "Art/Sound/jump.wav", --角色-跳跃
+    pace_list      = "Art/Sound/pace_list.wav", --角色-走路
+    Injuries_knife = "Art/Sound/Injuries_knife.wav", --角色-近战被击中
+    Injuries_gun_1 = "Art/Sound/Injuries_gun_1.wav", --角色-远程被击中
+    Injuries_gun_2 = "Art/Sound/Injuries_gun_2.wav", --角色-远程被击中
+    Injuries_gun_3 = "Art/Sound/Injuries_gun_3.wav", --角色-远程被击中
+    Injuries_gun_4 = "Art/Sound/Injuries_gun_4.wav", --角色-远程被击中
+    dead_default   = "Art/Sound/dead_default.wav", --角色-通用死亡
+    dead_woman   = "Art/Sound/dead_woman.wav", --角色-女性死亡
+    gold_death     = "Art/Sound/gold_death.wav", --角色-金武死亡
+    switch_default = "Art/Sound/switch_default.wav", --近战-切换
+    Brandish       = "Art/Sound/Brandish.wav", --近战-空挥
+    knife_hit      = "Art/Sound/knife_hit.wav", --近战-击中
+    throw          = "Art/Sound/throw.wav", --投掷-扔出
+    aim            = "Art/Sound/aim.wav", --枪械-开关镜
+    popping_head   = "Art/Sound/popping_head.wav", --子弹-爆头
+    pickup_bullet  = "Art/Sound/pickup_bullet.wav", --道具-弹药拾取
+    pickup_hp      = "Art/Sound/pickup_hp.wav", --道具-血包拾取
+    pickup_item    = "Art/Sound/pickup_item.wav", --道具-道具拾取
+    pattern_role   = "Art/Sound/pattern_role.wav", --触发-模式角色
+    game_end       = "Art/Sound/game_end.wav", --触发-结束音乐
+    meleeHitEmpty = "Art/Sound/brandish.wav",-- 近战砍空气
+    meleeHitObject = "Art/Sound/3001_fired.wav",-- 近战砍物体
+    meleeHitPlayer = "Art/Sound/knife_hit.wav",-- 近战砍人
+
+    background = "Art/Sound/background.wav",-- 用户在大厅界面，未进入游戏的背景音乐，需要节奏快，激昂一些。
+    win = "Art/Sound/game_end.wav",-- 单局解锁时，所有人都会听到简短的结束音乐
+    death_melee_1 = "Art/Sound/death_melee_1_lan%d.wav",-- 被近战杀死--不能再让他得逞了~
+    death_melee_2 = "Art/Sound/death_melee_2_lan%d.wav",-- 被近战杀死--下次要小心一点了
+    death_suicide_1 = "Art/Sound/death_suicide_1_lan%d.wav",-- 自杀--下次别在这样了？
+    death_suicide_2 = "Art/Sound/death_suicide_2_lan%d.wav",-- 自杀--为什么这么做？
+    death_Start_1 = "Art/Sound/death_Start_1_lan%d.wav",-- 开局提示--给他们点颜色瞧瞧！
+    death_Start_2 = "Art/Sound/death_Start_2_lan%d.wav",-- 开局提示--他们还以为自己能拿第一！
+    death_Start_3 = "Art/Sound/death_Start_3_lan%d.wav",-- 开局提示--速度解决他们！
+    game_end_1 = "Art/Sound/game_end_1_lan%d.wav",-- 结束提示--你做的非常好！
+    game_end_2 = "Art/Sound/game_end_2_lan%d.wav",-- 结束提示--你真是太棒了！
+    kill_head_1 = "Art/Sound/kill_head_1_lan%d.wav",-- 爆头击杀--你干掉他了
+    kill_head_2 = "Art/Sound/kill_head_2_lan%d.wav",-- 爆头击杀--喔~干的不错~
+    kill_head_3 = "Art/Sound/kill_head_3_lan%d.wav",-- 爆头击杀--这太简单了~
+
+    ---PVE
+    pve_countdown = "Art/Sound/countdown.wav",--倒计时
+    pve_countdown_end = "Art/Sound/countdown_end.wav",--倒计时结束
+    pve_round_remind = "Art/Sound/f5.wav",--波次刷新
+    pve_base_beattack = "Art/Sound/warning.wav",--基地被攻击警告
+    pve_boss_hp_percent60 = "Art/Sound/warning.wav",--boss血量60%
+    pve_boss_hp_percent30 = "Art/Sound/warning.wav",--boss血量30%,
+    pve_win = "Art/Sound/win.wav",--胜利/结束
+    pve_lose = "Art/Sound/lose.wav",--失败
+
+
+}
+
+const.AnimatorParam = {
+    RELOAD_ONEBYONE = 'ReloadOneByOne',
+    STANCE_STATE    = 'StanceState',
+    GUN_MODE        = 'GunMode',
+    GUN_NEXT_MODE   = 'GunNextMode',
+    ON_SHOOT        = 'OnShoot',
+    MOVE_DIR        = 'MoveDir',
+    ACTION_STATE    = 'ActionState',
+    NEEDCHANGEACTION= 'NeedChangeAction',
+    NEEDLOAD        = 'NeedLoad',
+    RELOAD_REMAINS  = 'ReloadRemains',
+    RELOAD_TYPE     = 'ReloadType',
+    RANDOM_ATK      = 'RandomAtk',
+    ON_RELOAD       = 'OnReload',
+    ON_START        = 'OnStart',
+    ON_JUMP         = 'OnJump',
+    ON_AIR          = 'OnAir',
+    ON_LOAD         = 'OnLoad',
+    ON_DEAD         = 'OnDead',
+    ON_HOLD         = 'OnHold',
+    ON_ONESHOT      = 'OnOneShot',
+    ON_TAUNT        = 'OnTaunt',
+    DEATH_ID        = 'DeathId',
+}
+
+const.TowerState = {
+    HEALTHY = 0,
+    BROKEN = 1,
+    DEAD = 2,
+}
+
+const.SkeletonType = {
+    MALE = 1,
+    FEMALE = 2,
+}
+
+--语音包枚举.key=shop_item.id, value传给使用者做资源读取
+const.VoiceType = {
+    Chinese = { key = 400000, value = 1 },
+    English = { key = 400100, value = 2 },
+    --...
+}
+-- 装备属性
+const.AttrType={
+    [1] = 'Skin_attr1001',
+    [2] = 'Skin_attr1002',
+    [3] = 'Skin_attr1003',
+    [4] = 'Skin_attr1004',
+    [5] = 'Skin_attr1005',
+    [6] = 'Skin_attr1006',
+    [7] = 'Skin_attr1007',
+    [8] = 'Skin_attr1008',
+    [9] = 'Skin_attr1009'
+}
+const.ActionInterrupt = {}
+
+const.ActionStateReverse = {}
+
+const.CheatState = {
+    NORMAL = 0,         --正常
+    OBSERVE = 1,        --列入观察
+    BANNED = 2,         --封禁
+}
+
+const.MiniLang = {
+    ZH = 0,
+    EN = 1,
+    ZHTW = 2,   --繁体
+    THA = 3,    --泰文
+    ESN = 4,    --西班牙
+    PTB = 5,    --巴西葡萄牙
+    FRA = 6,    --法文
+    JPN = 7,    --日文
+    ARA = 8,    --阿拉伯文
+    KOR = 9,    --韩语
+    VIE = 10,   --越南
+    RUS = 11,   --俄语
+    TUR = 12,   --土耳其
+    ITA = 13,   --意大利
+    GER = 14,   --德语
+    IND = 15,   --印尼语
+    MSA = 16,   --马来语
+}
+
+do
+    for _k, _v in pairs(const.CharactorActionState) do
+        const.ActionStateReverse[_v] = tostring(_k)
+    end
+end
+
+const.UI_PATH = 'Art/UI/'
+
+--游戏地图节点名
+const.GameMapName = 'GameMap'
+
+--提示语展示类型
+const.ShowTipsType = {
+    TIPS = 1,       --文本提示.默认
+    BOX = 2,        --弹窗提示 
+}
+
+--引导展示时间 后续读表.todo
+const.ShowGuideTime = 5
+const.TaskGoodIds = 
+{
+    GoodId_100exp        = 530013,--赛季经验100点（1级）
+    GoodId_UnlockAdvance = 530014,-- 解锁高级
+    GoodId_DayTask       = 530015,-- 购买每日挑战任务
+}
+
+--玩法模式ID枚举.对应配置表
+const.EnumGameMode = {
+	Standard = 1001,						--1001标准模式
+	Tradition = 1002,						--1002传统模式
+	RandWeapon = 1003,				--1003随机武器模式
+	CycleRandTradition = 1004,		--1004循环随机传统模式
+	CycleRandStandard = 1005,		--1005循环随机标准模式
+	HandGun = 1006,						--1006手枪模式
+	ShotGun = 1007,						--1007散弹枪模式
+	AssaultRifleGun = 1008,				--1008突击步枪
+	ShockRifleGun = 1009,				--1009震荡枪模式
+	ElectromagneticGun = 1010,		--1010电磁炮模式
+	Monkey = 1011,						--1011猴子(香蕉人)模式
+	HoldingBall = 1012,					--1012持球模式
+	Hardcore = 1013,						--1013硬核模式
+	Crazy = 1014,							--1014疯狂模式
+	SniperGod = 1015, 						--我是狙神
+	Knife = 1016,					--刀战模式
+	Bomb = 1017,					--轰炸模式
+    Spring = 1018,                  --春节模式
+
+	---PVE模式
+	TowerDefence = 1101,			--塔防模式
+	Survival = 1102,				--生存模式
+	Defence = 1103,					--防御模式
+	PveBoss = 1104,					--BOSS模式
+}
+
+return const

@@ -1,0 +1,2380 @@
+--MClientGun.lua
+--枪模块
+local ContextActionService = game:GetService("ContextActionService")
+local WS = game:GetService("WorldService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local MainStorage = game:GetService("MainStorage")
+local workspace = game:GetService('WorkSpace')
+local IsServer = false--RunService:IsServer()
+local Players = game:GetService("Players")
+local RayBullet = require(script.Parent.MRayBullet)
+local MBulletFire_triple = require(script.Parent.MBulletFire_triple)
+local LocalPlayer = not IsServer and Players.LocalPlayer
+local Scripts = MainStorage:WaitForChild("Scripts")
+local MCommon = Scripts:WaitForChild("MCommon")
+require(MCommon)
+local EffectManager = require(Scripts.MEffectManager)
+local ItemDefine = require(Scripts:WaitForChild('MItemDataDefine'))
+local WeaponSystem = Scripts:WaitForChild("WeaponSystem")
+
+local SoundCacheCount = 25 --开枪音效缓存数量
+
+local GUN_EVENT = {
+}
+
+local gun = {
+    init = function (self,--[[node,player]] role, weapon_info)
+        -- self.node = node
+        -- self.player = player
+		-- self.isLocalPlayer = self.player == LocalPlayer
+
+        self.host = role
+        self.player = role.player
+        self.isLocalPlayer = self.player == LocalPlayer
+        self.cfg_id = weapon_info.cfg_id --self.node:GetAttribute("ConfigID")
+        self.uuid = weapon_info.uuid --self.node:GetAttribute("UUID")
+        self.skinId = weapon_info.skinId
+
+        self.config = Config.Data.gun[self.cfg_id] -- 配置数据
+        self.resource_cfg = Config.Data.weapon_resource[self.cfg_id]
+        self.auto_fire_dist = (self.config.auto_fire_dis or 0) * 100 --自动射击距离
+        self.aim_assist_dist = (self.config.auto_aim_dis or 0) * 100 --辅助瞄准距离
+        self.mode = 1
+        self.weapon_pos = 1
+
+        self.autofire_speed = Config.Const.AutoFire_Config.AutoFire_Speed
+        
+        ---[[走协议的修改
+        self.Ammos = OUtils.table.DeepCopy(weapon_info.Ammo)
+        self.AmmoExtras = OUtils.table.DeepCopy(weapon_info.AmmoExtra)
+
+        self.magazine = OUtils.table.DeepCopy(weapon_info.Ammo)
+        self.mageZineCarry = OUtils.table.DeepCopy(weapon_info.AmmoExtra)
+
+        self.node = SandboxNode.new('Model')
+        self.node.LocalSyncFlag = Enum.NodeSyncLocalFlag.DISABLE
+        self.node.Name = self.config.remarks..'_'..self.uuid..'_'..self.cfg_id
+        self.node.Parent = role.node
+        --]]
+
+        self.weaponState = Const.WeaponState.READY --武器状态
+        self.mode_datas = {self.config}
+        self.mode_data_id = {self.cfg_id}
+        self.cur_mode_data = self.mode_datas[self.mode]
+        -- self.selectiveModeIndex = 1 --当前选择得快慢机索引
+        self.firedRoundsPerPull = 0 --每一次扳动已发射的子弹数量
+        self.attack_type = 0 --是否特殊攻击
+        self.weaponStateTimer = 0 --状态计时器
+        self.fireStateTimer = 0 --射击状态单独计时
+	    self.needRecoverPortArms = false		--在拉完枪机之后恢复开镜状态
+        self.firstReload = false				--是否是第一次上弹，循环动作播放前，仅限于逐发装填
+        self.hasPulledTheTrigger = false --标识是否扣动了扳机
+        self.hasReleasedTheTrigger = false --标识是否松开过了扳机
+        self.hasActiveAutoFire = false --是否激活自动射击
+	    self.renderEnable = true			--是否渲染本武器
+        self.haveFinishedCOCKING_WeaponIsManualBolt = true--是否完成了拉枪栓上弹的动作(此变量当前是只为解决打一枪就拉一下枪栓这钟武器使用的)
+        self.isSpecialBulletOn = false
+        self.bulletRemainingInBore = false--枪膛内是否有留弹
+        self.sightRange = 0 --当前准星尺寸
+        self.accuracy_x = 0 -- 散射半径
+        self.accuracy_y = 0 -- 散射角度
+        self.baseAccuracy = 0 --当前基本精度, 单位:厘米
+        self.change_probability = 0 --偏转概率
+        self.fireAction_time = 0 --限制最小动作以及抖动间隔
+        self.sound_node = nil
+        self.delayFire = false		--是否处于精度回复延迟状态
+        self.shotsFired = 0		--连射数
+        self.decreaseShotsFiredTime = 0-- 中间数据，计算下次回复连射数的时间点
+        self.valueChangeForAccuracy_x = Class.valueChange.new()	--水平精度的缓冲计算器，使精度的变化平滑
+        self.valueChangeForAccuracy_y = Class.valueChange.new()	--垂直精度的缓冲计算器，使精度的变化平滑
+        self.is_sight_on = false    --是否已经开镜
+        self.aimAssist_timer = 0
+        self.isEquiped = false
+
+        self.oneShot_list = {} --短音效提前预加载
+        self.oneShot_index = 1
+
+        if self.config.special_action == Const.WeaponSpecialAttack.CHANGE_MODE 
+        or self.config.special_action == Const.WeaponSpecialAttack.M_AIM
+        or self.config.special_action == Const.WeaponSpecialAttack.FULL_AUTO then
+            for i = 1, #self.config.mode_data do
+                self.mode_datas[#self.mode_datas + 1] = Config.Data.gun[self.config.mode_data[i]]
+                self.mode_data_id[#self.mode_data_id + 1] = self.config.mode_data[i]
+            end
+        end
+
+        self.supportBulletInBore = false--(self.config.weapon_supportBulletInBore ==1)--枪膛留单取消了
+        self.prepareTime = 200 -- 切枪后得准备时间
+
+        self.magazineCapacity = 0
+        self.magazineCapacity_carry = 0
+        self.numOfBulletsInGun = 0
+        self.numOfBulletsExtra = 0
+
+        self:setMode(self.mode)
+
+        self.yaw_dir = 1 --射击后座导致的偏转方向，1右，-1左
+        self.dir_random = 0.5 --抖动Z方向随机概率
+        -- self.checkChTimes = 0 --检查子弹真实发射数量
+
+        self.isInClient = true
+        ---[[
+        self.controller = SandboxNode.new('SandboxAssetContent')
+        self.controller_load_handler = self.controller.LoadFinish:connect(function(suc)
+            self.controller_loaded = suc
+            if suc then
+                self.controller_load_handler:disconnect()
+                self.controller_load_handler = nil
+            end
+            if self.controller_loaded then
+                -- print('########################Player '..self.host.player.UserId..'   '..self.config.remarks..' Controller Load Finished')
+                if self.host then
+                    self.host:onToolControllerLoaded(self)
+                end
+            end
+        end)
+        self.localplayer_tps_controller = SandboxNode.new('SandboxAssetContent')
+        self.tps_controller_load_handler = self.localplayer_tps_controller.LoadFinish:connect(function(suc)
+            self.localplayer_tps_controller_loaded = suc
+            if suc then
+                self.tps_controller_load_handler:disconnect()
+                self.tps_controller_load_handler = nil
+            end
+            if self.localplayer_tps_controller_loaded then
+                -- print('########################Player '..self.host.player.UserId..'   '..self.config.remarks..'tps_controller_loaded SUC')
+                if self.host then
+                    self.host:onToolLocalPlayerTPSControllerLoaded(self)
+                end
+            end
+        end)
+        --]]
+        
+        if not IsPveMonster(self.host.player.UserId) then
+            ---[[
+            if self.host.isLocalPlayer then
+                -- print('Load Weapon Controller'..self.config.controller)
+                self.controller:Load(Enum.AssetResType.AnimOverrideController, Resources:GetPrefabCloudID(self.config.controller))
+    
+                if self.host.skeletonType  == Const.SkeletonType.FEMALE then
+                    self.localplayer_tps_controller:Load(Enum.AssetResType.AnimOverrideController, Resources:GetPrefabCloudID(self.config.tps_controller_female))
+                else
+                    self.localplayer_tps_controller:Load(Enum.AssetResType.AnimOverrideController, Resources:GetPrefabCloudID(self.config.tps_controller_male))
+                end
+            else
+                if self.host.skeletonType  == Const.SkeletonType.FEMALE then
+                    self.controller:Load(Enum.AssetResType.AnimOverrideController, Resources:GetPrefabCloudID(self.config.tps_controller_female))
+                else
+                    self.controller:Load(Enum.AssetResType.AnimOverrideController, Resources:GetPrefabCloudID(self.config.tps_controller_male))
+                end
+            end
+            --]]
+            --[[
+            local tag = CONTENT_TAG_TPS_MALE
+            if self.host.skeletonType  == Const.SkeletonType.FEMALE then
+                tag = CONTENT_TAG_TPS_FEMALE
+            end
+            if self.host.isLocalPlayer then
+                AssetContent.GetContentAsync(self.uuid, self.cfg_id, CONTENT_TAG_FPS, function(_controller)
+                    self.controller_loaded = true
+                    self.controller = _controller
+                    if self.host then
+                        self.host:onToolControllerLoaded(self)
+                    end
+                end)
+                AssetContent.GetContentAsync(self.uuid, self.cfg_id, tag, function(_controller)
+                    self.localplayer_tps_controller_loaded = true
+                    self.localplayer_tps_controller = _controller
+                    if self.host then
+                        self.host:onToolLocalPlayerTPSControllerLoaded(self)
+                    end
+                end)
+            else
+                AssetContent.GetContentAsync(self.uuid, self.cfg_id, tag, function(_controller)
+                    self.controller_loaded = true
+                    self.controller = _controller
+                    if self.host then
+                        self.host:onToolControllerLoaded(self)
+                    end
+                end)
+            end
+            --]]
+        end
+
+        self:loadModel()
+
+        self.enable_control = false --当前武器是否可以进行攻击
+        self:enableControl(role.enable_control or false)
+
+        -- print('Player ['..self.host.player.UserId..'] weapon ['..self.uuid..'] cfg_id'..self.cfg_id..' created!')
+
+        -- if IsPveMonster(self.host.player.UserId) then
+        --     self:onEquiped()
+        -- end
+    end,
+
+    --加载模型
+    loadModel = function(self)
+        self.handle = SandboxNode.new('Model')--MainStorage.Assets.Weapon[self.config.gun_res].Handle:Clone()
+        self.handle.LocalSyncFlag = Enum.NodeSyncLocalFlag.DISABLE
+        local skinId
+        if self.skinId and self.skinId ~= 0 then
+            skinId = self.skinId
+        else
+            skinId = CMainGame.itemManager:GetGunSkinIdByMatId(self.cfg_id, Config.Data.gun[self.cfg_id].default_skin_mat) or 0
+        end
+        local skinCfg = Config.Data.shop_item[skinId]
+        if skinCfg and skinCfg.isUVSkin then
+        --if self.IsSkinSpecial and self:IsSkinSpecial(self.skinId) then
+            if self.resource_cfg.Mod_Special == '' then
+                ERR('Weapon Special Mode ID is nil ConfigId='..self.cfg_id)
+            end
+            self.handle.ModelId = self.resource_cfg.Mod_Special
+        else
+            self.handle.ModelId = self.resource_cfg.Mod
+        end
+
+        self.handle.Name = self.config.gun_res
+
+        local _Muzzle = SandboxNode.new('BindAttachment')
+        _Muzzle.Name = 'Muzzle'
+        _Muzzle.Parent = self.handle
+        self.handle.Muzzle.LocalPosition = Vector3.new(0,0,0)
+        self.handle.Muzzle.LocalEuler = Vector3.new(0,0,0)
+        self.handle.Muzzle.LocalScale = Vector3.new(1,1,1)
+
+        self.handle.EnablePhysics = false
+        self.handle.Visible = false
+        self.handle.CastShadow = (not self.isLocalPlayer)
+        self.handle.CollideGroupID = Const.CollisionType.INESSENTIAL
+        self.handle_load_handler = self.handle.LoadFinish:connect(function(suc)
+			self:setSkin(self.handle)
+            if self.handle_load_handler then
+                self.handle_load_handler:disconnect()
+                self.handle_load_handler = nil
+            end
+
+            if self.isLocalPlayer then
+                local _weaponAnimator = self.handle:GetAnimator()
+                _weaponAnimator.EventNotify:connect(function(_node, _name, _layer, _state)
+                    if _state == Enum.StateMachineMessage.kOnStateEnter then
+                        LOG('WeaponAnimator', '*************** Weapon Animator cfg_id='..self.cfg_id..'  name='.._name..' OnEnter layer='.._layer..'  tick='..tick())
+                    end
+                end)
+            end
+        end)
+        self.handle.Parent = self.node
+        -- self.handle.Visible = false
+        self:SetHandle()
+
+        --创建实体子弹模型
+        local bullet_type = self.config.Bullet_type
+        if bullet_type ~= 1 then
+            local bullet_cfg = AutoConfig.Data.gun_bullet[bullet_type]
+            self.bullet_node = MainStorage.Assets.Bullet[bullet_cfg.bullet_res]:Clone()
+            self.bullet_node.LocalSyncFlag = Enum.NodeSyncLocalFlag.DISABLE
+            self.bullet_node.CollideGroupID = Const.CollisionType.INESSENTIAL
+            self.bullet_node.CanTouch = false
+            self.bullet_node.CanCollide = false
+            self.bullet_node.Anchored = true
+            self.bullet_node.Visible = true
+            self.bullet_node.EnablePhysics = false
+            self.bullet_node.CastShadow = false
+            self.bullet_node.Parent = self.node
+            local scale = bullet_cfg.hand_scale or {1, 1, 1}
+            self.bullet_node.LocalScale = Vector3.new(scale[1], scale[2], scale[3])
+
+            --子弹也要换肤
+            if self.bullet_node:IsLoadFinish() then
+                self:setSkin(self.bullet_node, true)
+            else
+                local listener
+                listener = self.bullet_node.LoadFinish:connect(function(suc)
+                    self:setSkin(self.bullet_node, true)
+                    listener:disconnect()
+                    listener = nil
+                end)
+            end
+
+            --播放创建时特效
+            EffectManager:playWeaponEffect(EffectDefine.EnumEffectType.eEntityBulletInherent, {
+                parent = self.bullet_node,
+                effectIds = bullet_cfg.effect_id
+            })
+        end
+    end,
+
+    --设置handle  --表现层 qkw
+    SetHandle = function(self)
+        self.fireSoundNode = self:_CreateSoundNode(self.resource_cfg.Fired)--self.handle:FindFirstChild('Fired')
+        self.fireSoundLoopNode = self:_CreateSoundNode(self.resource_cfg.Fired_Loop)--self.handle:FindFirstChild('Fired_Loop')
+        self.fireSoundEndNode = self:_CreateSoundNode(self.resource_cfg.Fired_End)--self.handle:FindFirstChild('Fired_End')
+        self.reloadSoundNode = self:_CreateSoundNode(self.resource_cfg.ReloadSound)--self.handle:FindFirstChild('ReloadSound')
+        self.oneShot_list = {}
+        self.oneShot_index = 1
+        local timer
+        timer = {OnBeat = function(tag, id, count, context)
+            if not self.handle or self.handle.ID ~= context then
+                --clone过程中, 枪被换掉了
+                Timer:Stop(timer, TimerID.CacheGunSoundTimer, context)
+                return
+            end
+            local _sound = self.fireSoundNode:Clone()
+            _sound.Name = tostring(self.cfg_id)
+            _sound.Parent = self.node
+            local index = #self.oneShot_list
+            self.oneShot_list[index + 1] = _sound
+            if self.isEquiped then
+                SoundManager:bindOneShotNode(_sound)
+            end
+        end}
+        Timer:Launch(timer, TimerID.CacheGunSoundTimer, 0, SoundCacheCount, Timer.NextFrameRun, self.handle.ID)
+
+        self.SwitchSoundNode = self:_CreateSoundNode(self.resource_cfg.Switch)--self.handle:FindFirstChild('Switch') -- 切枪
+        self.boltSoundNode = self:_CreateSoundNode(self.resource_cfg.bolt)--self.handle:FindFirstChild('bolt') -- 拉栓
+
+        self.Muzzle = self.handle:WaitForChild('Muzzle')
+        self.Muzzle.LocalEuler = Vector3.new(90, 0, 0)
+
+        if not self.reloadSoundNode then
+            self.reloadSoundNodes = {}
+            for i=1,3 do
+                local sound =  self:_CreateSoundNode(self.resource_cfg['ReloadSound'.. i])--self.handle:FindFirstChild('ReloadSound'.. i)
+                if sound then table.insert(self.reloadSoundNodes,sound) end
+            end
+        end
+
+        self.handle.Muzzle.BoneName = "101"
+
+        -- --先屏蔽旧特效.后续删除.todo
+        -- self.fireEffectNode = self.handle.Muzzle:FindFirstChild('MuzzleEffect')
+        -- self.fireSmokeNode = self.handle.Muzzle:FindFirstChild('SmokeEffect')
+        -- self.shellEffectNode = self.handle:FindFirstChild('BulletShell')--弹壳特效
+
+        -- if self.fireEffectNode then
+        --     self.fireEffectNode.Parent = nil
+        -- end
+        -- if self.fireSmokeNode then
+        --     self.fireSmokeNode.Parent = nil
+        -- end
+        -- if self.shellEffectNode then
+        --     self.shellEffectNode.Parent = nil
+        -- end
+    end,
+
+    _CreateSoundNode = function(self, res_id)
+        if #res_id > 0 then
+            local _node = SandboxNode.new('Sound')
+            _node.SoundPath = res_id
+            _node.Parent = self.handle
+            return _node
+        end
+        return nil
+    end,
+
+    --设置枪械皮肤
+	setSkin = function(self, model, isBullet)
+        -- 抢已经被销毁了
+        if self.node == nil then
+            return
+        end
+		--枪械皮肤更换
+		local skinId = self.skinId--self.node:GetAttribute('SkinId')
+        if skinId == 0 or not model then return end
+		--枪械皮肤ID转贴图ID
+		local materialId = CMainGame.itemManager:GetGunMatIdBySkinId(self.cfg_id, skinId)
+		if not materialId or materialId == 0 then
+			return
+		end
+        CMainGame.equipManager:ChangeGunSkin(model, skinId, materialId, isBullet)
+	end,
+
+    --@func 设置枪械模式参数 
+    setMode = function(self, _mode)
+        self.mode = _mode
+        if self.mode_datas[_mode] then
+            self.cur_mode_data = OUtils.table.DeepCopy(self.mode_datas[_mode])
+        end
+        if self.cur_mode_data then
+            self.magazineCapacity = self:_fixSkinAttribute(self.cur_mode_data.magazine, ItemDefine.EnumSkinAttrType.eBulletCapacity) 
+            self.magazineCapacity_carry = self:_fixSkinAttribute(self.cur_mode_data.magazine_carry, ItemDefine.EnumSkinAttrType.eBulletTakeCapacity) 
+
+            --这里先这样特殊处理，后期在数据配表层面做一些调整再修改逻辑
+            local ammoIndex = self.mode
+            if self.config.special_action == Const.WeaponSpecialAttack.CHANGE_MODE then
+            else
+                ammoIndex = 1
+            end
+            self.numOfBulletsInGun = self.Ammos[ammoIndex]
+            self.numOfBulletsExtra = self.AmmoExtras[ammoIndex]
+
+            self.fireDelay = self.cur_mode_data.fire_delay or 100
+            self.muzzleVelocity = self.cur_mode_data.muzzle_velocity or 100 --子弹出膛速度
+            self.reloadTime = self.cur_mode_data.reload_time--换子弹时间
+            self.selectiveMode = self.cur_mode_data.shooting_mode[1]
+            self.selectiveNum = self.cur_mode_data.shooting_mode[2] or 2
+            self.maxRange = self.cur_mode_data.max_range
+            self.fireInterval = self.cur_mode_data.fire_rate --子弹间隔
+            self.sight_on_time = self.cur_mode_data.weapon_scaleTime or 100--开镜时间
+            self.valueChangeForAccuracy_x:forceValue(math.min(self:_fixSkinAttribute(self.cur_mode_data.spread_max[1], ItemDefine.EnumSkinAttrType.eScatteringRange),self.cur_mode_data.spread_radius[1]),true)
+            self.valueChangeForAccuracy_y:forceValue(0.5*OUtils.toRadian(self.cur_mode_data.spread_range[1]),true)
+            self.cur_mode_id = self.mode_data_id[_mode]
+        else
+            self.cur_mode_data = OUtils.table.DeepCopy(self.mode_datas[1])
+            self.cur_mode_id = self.mode_data_id[1]
+        end
+
+        --提前计算好皮肤修正后的后坐力, 散射上限等数据
+        for i = 1, 5 do 
+            self.cur_mode_data.spread_max[i] = self:_fixSkinAttribute(self.cur_mode_data.spread_max[i], ItemDefine.EnumSkinAttrType.eScatteringRange)
+            self.cur_mode_data.vertical_recoil_max[i] = self:_fixSkinAttribute(self.cur_mode_data.vertical_recoil_max[i], ItemDefine.EnumSkinAttrType.eRecoil)
+            self.cur_mode_data.horizontal_recoil_max[i] = self:_fixSkinAttribute(self.cur_mode_data.horizontal_recoil_max[i], ItemDefine.EnumSkinAttrType.eRecoil)
+        end
+
+        if self.isLocalPlayer then
+            --更新弹匣数据
+            self.host:updateAmmo(self:getCapacity(), self:getCapacityCarry())
+        end
+
+        if self.cfg_id ~= 2825 then  --2825改成 SPECAIL_TIME 事件触发
+            self:playEntityBulletEffect()
+        end
+    end,
+
+    --@func 下一个模式的ID
+    getNextMode = function(self)
+        local max_mode = 2
+        --机瞄等其他逻辑也可以切换模式，但是只有模式2
+        if self.config.special_action == Const.WeaponSpecialAttack.CHANGE_MODE then
+            max_mode = #self.mode_datas
+        end
+        local _next = self.mode + 1
+        if _next > max_mode then
+            _next = 1
+        end
+        return _next
+    end,
+
+	getHost = function(self)
+		-- if not self.host and CMainGame then
+		-- 	self.host = CMainGame.playerManager:GetRoleByUserId(self.player.UserId)
+		-- end
+		return self.host
+	end,
+
+    --@func 是否是不可打断状态
+    isLockingState = function(self)
+        return self.weaponState == Const.WeaponState.FIRING or self.weaponState == Const.WeaponState.RELOADING or self.weaponState == Const.WeaponState.PREPARING
+    end,
+
+    --释放特效停止音效
+    onRelease = function(self)
+    end,
+
+    --释放
+    OnLeaveScene = function(self)
+        self.node = nil
+        self.player = nil
+    end,
+
+    --播放实体子弹特效
+    playEntityBulletEffect = function(self)
+        if self.cur_mode_data.Bullet_type ~= 1 and self.bullet_node then
+            EffectManager:releaseEntityBulletEffect(self.bullet_node)
+            --播放创建时特效
+            EffectManager:playWeaponEffect(EffectDefine.EnumEffectType.eEntityBulletInherent, {
+                parent = self.bullet_node,
+                effectIds = Config.Data.gun_bullet[self.cur_mode_data.Bullet_type].effect_id
+            })
+        end
+    end,
+
+    --[[
+        修正枪械皮肤带来的属性加成 
+        @base = 配置表中对应的值：弹匣/携弹最大容量/后坐力上限/散射范围 
+        @extendType = ItemDefine.EnumSkinAttrType
+	]]
+    _fixSkinAttribute = function(self, base, extendType)
+        if not base or base <= 0 then
+            return base
+        end
+        --如果是携弹容量.策划说先判断是否购买了双倍弹药特权
+        if extendType == ItemDefine.EnumSkinAttrType.eBulletTakeCapacity then
+            local actInfo = CMainGame.accountManager:GetAccountInfo()
+            if actInfo and actInfo.DoubleBulletPrivilege then
+                base = base * 2
+            end
+        end
+		--皮肤加成弹匣容量和携弹容量
+        local extendAttr = CMainGame.equipManager:GetExtendAttrByType(self.player.UserId, extendType, self.cfg_id)
+        if extendAttr then
+            if extendAttr.valueType == ItemDefine.EnumValueType.eExplicit then
+                --绝对值
+                base = base + extendAttr.value
+            else
+                --百分比
+                base = base * (1 + extendAttr.value)
+                --携弹容量.向上取整
+                if extendType == ItemDefine.EnumSkinAttrType.eBulletTakeCapacity then
+                    base = math.ceil(base)
+                end
+            end
+        end
+		return base
+	end,
+
+    _getStateIndex = function(self)
+        local stanceState = self.host:GetStanceState()
+        local moveState = self.host:GetMoveState()
+        local index = 1 --默认站立
+        if self:_isSnipeAim() or self:_isMaunalAim() then
+            index = 5 --开镜或机瞄下
+        elseif stanceState == Const.CharactorStanceState.JUMP or stanceState == Const.CharactorStanceState.FLYING then
+            index = 4
+        elseif stanceState == Const.CharactorStanceState.CROUCH then
+            index = 3
+        elseif moveState == Const.CharactorMoveState.MOVE then
+            index = 2
+        end
+        return index
+    end,
+
+    --@func 计算后座导致的摄像机变化
+    --@shotsFired 连射数
+    --@返回
+    _calcKickBack = function(self,shotsFired)
+        local index = self:_getStateIndex()
+
+        local recoil_pitch = self.cur_mode_data.vertical_recoil[index]
+        local recoil_pitch_add = self.cur_mode_data.vertical_recoil_correct[index]
+        local recoil_pitch_limit = self.cur_mode_data.vertical_recoil_max[index] 
+
+        local recoil_yaw = self.cur_mode_data.horizontal_recoil[index]
+        local recoil_yaw_add = self.cur_mode_data.horizontal_recoil_correct[index]
+        local recoil_yaw_limit = self.cur_mode_data.horizontal_recoil_max[index]
+
+		local v_p = self.cur_mode_data.vertical_recoil_proportion + math.random()*(1-self.cur_mode_data.vertical_recoil_proportion)
+		local h_p = self.cur_mode_data.horizontal_recoil_proportion + math.random()*(1-self.cur_mode_data.horizontal_recoil_proportion)
+		-- LOG('wj',"recioil value".. v_p)
+        local pitch = -math.min(v_p * (recoil_pitch+shotsFired*recoil_pitch_add),recoil_pitch_limit)
+        local yaw = math.min(h_p * (recoil_yaw+shotsFired*recoil_yaw_add),recoil_yaw_limit)
+        self.change_probability = self.change_probability + math.random(self.cur_mode_data.change_probability[1],self.cur_mode_data.change_probability[2])
+        if self.change_probability >= 100 then
+            self.yaw_dir = -self.yaw_dir
+            self.change_probability = 0
+        end
+        yaw = yaw * self.yaw_dir
+
+        --设置给camera
+		GameCamera:onGunRecoil(yaw,pitch)
+        -- LOG('wj',"recioil pitch="..pitch..'  yaw='..yaw)
+        GameCamera.shake_cal:shake({way='shake_recoil',yaw=yaw*self.cur_mode_data.offset_distance[index],pitch=pitch*self.cur_mode_data.offset_distance[index],time=self.cur_mode_data.return_time*0.001})
+    end,
+
+    --@func 计算开枪导致的摄像机抖动
+    --@返回
+    _calcFireCameraShake = function(self)
+        
+        --[[local random = math.random()--随机Z抖动方向
+        if random < self.dir_random then
+            self.dir_random = math.max(self.dir_random - 0.1,0)
+            random = -1
+        else
+            self.dir_random = math.min(self.dir_random + 0.1,1)
+            random = 1
+        end
+        GameCamera.shake_cal:shake({way='shake_gunFire',roll=random*OUtils.toRadian(self.config.shake_roll),roll_time=self.config.shake_roll_time,
+            roll_percent=self.config.shake_roll_percent,roll_num=self.config.shake_roll_num,
+            pitch_percent=self.config.shake_pitch_percent,pitch_num=self.config.shake_pitch_num,
+            pitch=-OUtils.toRadian(self.config.shake_pitch),pitch_time=self.config.shake_pitch_time,time=self.config.shake_time
+        })
+        if self.config.shake_pos_x > 0 or self.config.shake_pos_y > 0 or self.config.shake_pos_z > 0 then
+            GameCamera.shake_cal:shake({way='shakePos_gunFire',shake_pos_x = self.config.shake_pos_x,shake_pos_y = self.config.shake_pos_y,shake_pos_z = self.config.shake_pos_z
+                ,shake_pos_time=self.config.shake_pos_time,shake_pos_percent=self.config.shake_pos_percent})
+        end
+        GameCamera:shakePos(0.2, -0.1, 0.2, self.config.shake_time)]]
+    end,
+
+    --@func 是否是开火状态
+    isFiring = function(self)
+	    return self.weaponState == Const.WeaponState.FIRING or self.weaponState == Const.WeaponState.FIRING_EX
+    end,
+
+    --@func 设置武器状态
+    --@参数weapon_state 武器状态
+    --@返回
+    _setWeaponState = function(self,weapon_state) --设置武器状态
+--LOG('temp','fire setWeaponState...........'.. weapon_state)
+        local oldState = self.weaponState
+        self.weaponState = weapon_state
+        -- print('SetWeaponState = '..weapon_state)
+        self:_AfterWeaponStateChange(oldState)
+        if oldState == Const.WeaponState.FIRING 
+        and self._autoFire_On then
+            self._autoDetect_timer = tick()
+            self._autoFire_On = false
+            self.hasActiveAutoFire = false
+            self:releaseTheTrigger(true)
+        end
+        
+        if self.weaponState == Const.WeaponState.FIRING then
+            local _ison = CMainGame.playerManager:GetRoleByUserId(self.player.UserId)
+            _ison:SetAimAssist(true)
+            -- CMainGame.AimAssist = true
+            self.aimAssist_timer = tick()
+        end
+    end,
+
+    --@func 武器状态改变之后状态
+    --@参数weapon_state 武器状态
+    --@返回
+    _AfterWeaponStateChange = function(self,old_state) --武器状态改变触发
+        --从开火状态切换到其它任意状态要停止播放开火的音效
+	    if old_state == Const.WeaponState.FIRING or old_state == Const.WeaponState.FIRING_EX then
+		    if self.weaponState ~= Const.WeaponState.FIRING and self.weaponState ~= Const.WeaponState.FIRING_EX then
+			    --单发的不会停止
+                if self.fire_sound_handler then --fire_sound_handler 貌似没有再用了
+                    self.delay_stopFireSound = self.fireInterval
+                end
+                --self.host:playAction('idle')
+		    end
+	    end
+
+        if self.weaponState == Const.WeaponState.FIRING then
+            --[[if old_state == Const.WeaponState.READY then --从休闲状态切换到开枪，需要经过准备阶段
+                self.firePrepared = false
+            end]]
+            self.firedRoundsPerPull = 0
+            -- if true or self.fireDelay > 0 then
+            --     self.weaponStateTimer = tick() + self.fireDelay
+            --     self.fireStateTimer = tick() + self:_getFireInterval()--self.fireInterval
+            --     --播放开火前摇动作
+            --     OUtils.playAnim("gun_pre",self.player)
+            -- else
+            --     --self:_tryFire()
+            -- end
+            --self:PlayPreFireAction(m_fWeaponStateTimer)
+        elseif self.weaponState == Const.WeaponState.FIRING_EX then
+            self.weaponStateTimer = tick() -1
+            self.firedRoundsPerPull = 0
+        elseif self.weaponState == Const.WeaponState.IDLE then
+            if self:needLoad() and self:_isPassAllRoundsPerPull() then
+                self.weaponStateTimer = tick()
+            else
+                self.weaponStateTimer = tick() + self:_getFireInterval()--self.fireInterval
+            end
+            self:setSpecialBulletOn(false)
+            self.hasPulledTheTrigger = false
+        elseif self.weaponState == Const.WeaponState.RELOADING then
+            self.firedRoundsPerPull = 0
+			self:portArms(false,true)--换弹夹时要关镜
+            if old_state == Const.WeaponState.READY then
+                self:_updateBulletRemainingInBore()
+            end
+
+            if self.bulletRemainingInBore then
+                if old_state == Const.WeaponState.COCKING or old_state == Const.WeaponState.DECOCKING or old_state == Const.WeaponState.FIRING_EX then
+                    self.bulletRemainingInBore = false
+                end
+            end
+
+            self.delayFire = false
+            self.decreaseShotsFiredTime = 0
+            self.shotsFired = 0
+            --self.shotsFiredAdjustParaForAccuracy = float(cfg_Weapon_nMaxShotsFired)
+        elseif self.weaponState == Const.WeaponState.READY then
+            self._autoFire_On = false
+            self.hasActiveAutoFire = false
+            if self.hasPulledTheTrigger then
+                self:releaseTheTrigger(true)
+            end
+            self.weaponStateTimer = tick()
+            if old_state == Const.WeaponState.DECOCKING then
+                --self.host:updatePlayLoopAction(-1)
+            end
+
+            --self.decreaseShotsFiredTime = 0
+            if old_state == Const.WeaponState.RELOADING then
+                --self:_updateBulletRemainingInBore()
+            end
+
+		    if old_state == Const.WeaponState.COCKING then
+                if self:_isManualBolt() and self.numOfBulletsInGun > 0 and self:_isPassAllRoundsPerPull() and not self.is_sight_on--[[and not MODULES[host_obj].charactorBase.isPortArms()]] then
+                    self:_setWeaponState(Const.WeaponState.COCKING_PREPARE)    --拉枪栓子弹上膛
+                end
+            end
+        elseif self.weaponState == Const.WeaponState.PORTING then
+            self.weaponStateTimer = tick() + self.sight_on_time
+        elseif self.weaponState == Const.WeaponState.PREPARING then
+            self.firedRoundsPerPull = 0
+            self.weaponStateTimer = tick() + self.prepareTime
+        elseif self.weaponState == Const.WeaponState.COCKING then
+            self.firedRoundsPerPull = 0
+            --local bOldNotBulletRemainingInBore = not self.bulletRemainingInBore
+			-- if (bOldNotBulletRemainingInBore and self.numOfBulletsInGun > 0 and self.supportBulletInBore) and self:_isManualBolt() then
+            if self.numOfBulletsInGun > 0 and self:_isManualBolt() then
+				--播放拉枪栓上膛动画
+				if self.isInClient and self.isLocalPlayer then
+					if self.is_sight_on then
+						self.needRecoverPortArms = true
+                    end
+				end
+
+                if self.boltSoundNode and  self.isLocalPlayer then
+                    SoundManager:play(self.boltSoundNode)
+                end
+
+			end
+        elseif self.weaponState == Const.WeaponState.COCKING_PREPARE then
+            self.firedRoundsPerPull = 0
+            self.weaponStateTimer = tick()--self.desc.loadEndTime
+        elseif self.weaponState == Const.WeaponState.DECOCKING then
+            self.firedRoundsPerPull = 0
+            if old_state == Const.WeaponState.IDLE or old_state == Const.WeaponState.FIRING or old_state == Const.WeaponState.RELOADING then
+                self.weaponStateTimer = tick()
+            end
+            -- if self.numOfBulletsExtra[self.mode] == 0 and self.host then
+            if not self:checkCapacityCarry() and self.host then
+                self.host:equipTool(3)
+            end
+        elseif self.weaponState == Const.WeaponState.HOLDING then
+            self.host:onHolding()
+        elseif self.weaponState == Const.WeaponState.PRE_FIRE then
+            self.host:onPreFire()
+        end
+    end,
+
+    --@func 尝试开火
+    --@返回
+    _tryFire = function(self)
+        if self.host and not self.host:canFire() then
+            return false
+        end
+
+        if self:_isBow() then
+            if self.host.action_state == Const.CharactorActionState.IDLE then
+                self:_setWeaponState(Const.WeaponState.HOLDING)
+            end
+        else
+            self:_afterFire()
+        end
+
+        --2226武器开火后移除部件特效
+        if self.cfg_id == 2226 then
+            EffectManager:release({parent = self.handle.Muzzle, effectName = 'WEAPON_PART_EFFECT'})
+        end
+    end,
+
+    --@func 开火
+    --@参数muzzle_pos 武器膛口位置
+    --@返回
+    _fire = function(self)
+        if self.host then
+            if not self.host:canFire() then
+                return false
+            end
+        end
+--         --trace_log('fire..............')
+--         local bulletCreator = {
+--             weapon = self,
+--             muzzle_pos = Vector3.new(0,0,0),
+--             startPos = Vector3.new(0,0,0),
+--             dir = Vector3.new(0,0,0),
+--             muzzleVelocity = self.muzzleVelocity,
+--             maxRange = self.maxRange,
+--             accuracy_x=0,
+--             accuracy_y =0
+--         }
+--         --膛口位置
+--         bulletCreator.muzzle_pos = self.handle.Muzzle.Position
+--         if self.isInClient and self.isLocalPlayer then --本地玩家主控的枪，则使用摄像机位置
+--             bulletCreator.startPos = game.WorkSpace.CurrentCamera.Position
+--             bulletCreator.dir = self.host.head_rot:LookDir()
+--             local dir = GameCamera.node.Rotation:LookDir()
+-- --LOG('temp',"bulletCreator.dir = x="..bulletCreator.dir.x.. bulletCreator.dir.y.. bulletCreator.dir.z)
+-- --LOG('temp',"bulletCreator.dir = x=".. dir.x.. "y=".. dir.y.. "z=".. dir.z)
+--         else
+--             local stance_state = self.host.node:GetAttribute("stance_state")
+--             if stance_state == Const.CharactorStanceState.CROUCH then
+--                 bulletCreator.startPos = self.player.Character.Position + Vector3.new(0,Config.Const.role_foundation.fps_stand_height,0)--需要加上偏移
+--             else
+--                 bulletCreator.startPos = self.player.Character.Position + Vector3.new(0,Config.Const.role_foundation.fps_crouch_height,0)--需要加上偏移
+--             end
+--             if self.host.isAi then
+--                 bulletCreator.userId = self.player.UserId
+--                 bulletCreator.teamId = self.host.teamId
+--                 bulletCreator.dir = -self.player.Character.Rotation:LookDir()
+--                 bulletCreator.startPos = bulletCreator.startPos + Vector3.new(self.aiOffsetX,0,self.aiOffsetZ)
+--             else
+--                 local euler = self.player.Character.Euler
+--                 local rotate = Quaternion.FromEuler(euler.x, self.player.node:GetAttribute("Head_Pitch"), euler.z)
+--                 bulletCreator.dir = rotate:LookDir()
+--             end
+--             -- end
+--         end
+--         --创建子弹
+--         if true--[[self.bullet_id ~= 0]] then
+--                 local cur_accuracy_x = math.max(0, self.valueChangeForAccuracy_x.cur)
+--                 bulletCreator.accuracy_x = cur_accuracy_x--self.accuracy_x
+--                 bulletCreator.accuracy_y = self.valueChangeForAccuracy_y.cur--self.accuracy_y
+--                 bulletCreator.CollisionGroup = self.host.bulletCollisionGroup
+
+--                 local num = 1
+--                 if self.special_attack and self.config.special_action == Const.WeaponSpecialAttack.SHOOT_ALL then
+--                     num = self:getCapacity()
+--                 end
+--                 for _ = 1, num do
+--                     local bullet = RayBullet.new()
+--                     bullet:calHit(bulletCreator)
+--                 end
+--         end
+        return true
+    end,
+
+    --未击中任何物体
+    hitNothing = function(self, start_pos, hit_pos)
+        local tbl =
+        {
+            weapon_id = self.cfg_id,
+            pos_x = hit_pos.x,
+            pos_y = hit_pos.y,
+            pos_z = hit_pos.z,
+            start_x = self.handle.Muzzle.Position.x,
+            start_y = self.handle.Muzzle.Position.y,
+            start_z = self.handle.Muzzle.Position.z,
+        }
+
+        if not self.host.isAi then
+            Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_HIT, tbl)
+        end
+        self:onHitNothing(tbl)
+    end,
+
+    --击中了玩家
+    hitPlayer = function(self,start_pos,hit)
+        --todo  remoteevent hitPlayer
+        --self.hitPlayer.fireServer(hit.hitActorId)
+        if self.isLocalPlayer then
+            --LOG('zn','hitplayer',hit.obj.Name)
+            local hitPart = hit.obj:GetAttribute("HitPart")
+            local hitPlayer = hit.obj.Parent.Parent.Parent
+            local hitUserId = hitPlayer:GetAttribute("UserId") or hitPlayer.UserId
+  
+            --计算一下是否是背后攻击
+            local isBehind = 0
+            local attack_dir = self.player.Character.Position - hitPlayer.Position
+            attack_dir:Normalize()
+            attack_dir = attack_dir - Vector3.new(0, attack_dir.Y, 0)
+
+            local enemy_dir = hitPlayer.Rotation:LookDir()
+            enemy_dir:Normalize()
+            enemy_dir = enemy_dir - Vector3.new(0, enemy_dir.Y, 0)
+
+            local dot_result = attack_dir:dot(enemy_dir)
+            LOG("WWW","dot_result",dot_result,math.acos(dot_result),math.acos(dot_result) * 180 /  3.141592653)
+            if dot_result > 0.5 then
+                isBehind = 1
+            end
+
+            local tbl = {weapon_id=self.cfg_id,
+            damage_type = Const.DamageType.NORMAL,
+            hitPart=hitPart,
+            hitDist=hit.distance,
+            pos_x = hit.position.x,
+            pos_y = hit.position.y,
+            pos_z = hit.position.z,
+            start_x = self.handle.Muzzle.Position.x,
+            start_y = self.handle.Muzzle.Position.y,
+            start_z = self.handle.Muzzle.Position.z,
+            normal_x = hit.normal.x,
+            normal_y = hit.normal.y,
+            normal_z = hit.normal.z,
+            aim_shot= self:_isSnipeAim(),
+            blind_shoot = self:blindShoot(),
+            hitBehind = isBehind,
+            hitActorID=hitUserId,
+            mode_id = self.cur_mode_id}
+
+            Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_HIT, tbl)
+
+            self:onHitPlayer(tbl)
+        end
+    end,
+
+    hitObject = function(self, start_pos, hit, material)
+        local tbl = {weapon_id=self.cfg_id,
+        damage_type = Const.DamageType.NORMAL,
+        -- pos = {x=hit.position.x, y=hit.position.y, z=hit.position.z},
+        -- normal = {x=hit.normal.x, y = hit.normal.y, z = hit.normal.z},
+        hitDist = hit.distance,
+        pos_x = hit.position.x,
+        pos_y = hit.position.y,
+        pos_z = hit.position.z,
+        start_x = self.handle.Muzzle.Position.x,
+        start_y = self.handle.Muzzle.Position.y,
+        start_z = self.handle.Muzzle.Position.z,
+        normal_x = hit.normal.x,
+        normal_y = hit.normal.y,
+        normal_z = hit.normal.z,
+        aim_shot= self:_isSnipeAim(),
+        blind_shoot = self:blindShoot(),
+        material = material,
+        hitObj = hit.obj}
+        local towerId = hit.obj:GetAttribute('TowerId')
+        if not self.host.isAi or towerId then --pve
+            if towerId then
+                tbl.hitPart = 'body'
+            end
+            Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_HIT,tbl)
+        end
+        self:onHitObject(tbl)
+    end,
+
+    --判断一下是否盲狙
+    blindShoot = function(self)
+        if self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM then
+            return not self:_isSnipeAim()
+        end
+        return false
+    end,
+
+    onHitPlayer = function(self, tbl)
+        local pos = Vector3.new(tbl.pos_x, tbl.pos_y, tbl.pos_z)
+        local startPos = Vector3.new(tbl.start_x, tbl.start_y, tbl.start_z)
+        local normal = Vector3.new(tbl.normal_x, tbl.normal_y, tbl.normal_z)
+        HitMark.addHitEffect({
+            pos = pos, normal = normal, weaponId = tbl.weapon_id, 
+            isHitPlayer = true, isHitHead = tbl.hitPart == 'head'
+        }) 
+        if (not self:_isSnipeAim()) then
+            BulletLine.addBulletLine({startPos = startPos, endPos = pos, weaponId = tbl.weapon_id})
+        end
+    end,
+
+    onHitObject = function(self, tbl)
+        local pos = Vector3.new(tbl.pos_x, tbl.pos_y, tbl.pos_z)
+        local startPos = Vector3.new(tbl.start_x, tbl.start_y, tbl.start_z)
+        local normal = Vector3.new(tbl.normal_x, tbl.normal_y, tbl.normal_z)
+        HitMark.addHitMark({pos = pos, normal = normal, weaponId = tbl.weapon_id, hitObj = tbl.hitObj})
+        if (not self:_isSnipeAim()) then
+            BulletLine.addBulletLine({startPos = startPos, endPos = pos, weaponId = tbl.weapon_id})
+        end
+    end,
+
+    onHitNothing = function(self, tbl)
+        local pos = Vector3.new(tbl.pos_x, tbl.pos_y, tbl.pos_z)
+        local startPos = Vector3.new(tbl.start_x, tbl.start_y, tbl.start_z)
+        if (not self:_isSnipeAim()) then
+            BulletLine.addBulletLine({startPos = startPos, endPos = pos, weaponId = tbl.weapon_id})
+        end
+    end,
+
+    _tryPlaySound = function(self,sound_node, reset)
+        if reset then
+            SoundManager:StopSound(self.sound_node)
+        end
+
+        if sound_node then
+            self.sound_node = SoundManager:playSoundByTrans(sound_node, self.handle.Muzzle)
+        end
+    end,
+
+    _playOneShot = function(self)
+        self.oneShot_index = self.oneShot_index + 1
+        if self.oneShot_index > #self.oneShot_list then
+            self.oneShot_index = 1
+        end
+        if not self.oneShot_list[self.oneShot_index] then
+            return
+        end
+        SoundManager:playOneShot(self.oneShot_list[self.oneShot_index], self.handle.Muzzle.Position)
+    end,
+
+    --停止特效播放
+    _tryStopEffect = function(self)
+    end,
+
+    --@func 播放开火特效和音效
+    playFireSoundAndEffect = function(self)
+        --self:_tryPlaySound(self.fireSoundNode)
+        if self.host then
+            self:_playOneShot()
+            if self:_isBow() then
+                self.host:onActionStateSync(Const.CharactorActionState.FIRE)
+            end
+        end
+        
+        --枪口特效
+        if CUR_QUALITY == 0 then return end
+        if self.isLocalPlayer then
+            local tbl = {weaponId = self.cfg_id, weaponType = self.config.gun_type, parent = self.Muzzle}
+            EffectManager:playWeaponEffect(EffectDefine.EnumEffectType.eFire, tbl)
+        end
+    end,
+
+    --停止开火音效
+    _stopFireSound = function(self,no_end)
+
+    end,
+
+    --@func 开火之后处理
+    _afterFire = function(self)
+        LOG("WWW","MClientGun _afterFire....")
+        self:_updateAccuracy(true) --更新精准度
+        self.shotsFired = self.shotsFired + 1
+        self.delayFire = true
+
+        --[[if math.abs(deltaPitch) > 0.0001 then
+            self.host:changeHeadPunchPitch(utils.toRadian(deltaPitch))
+        end
+        if math.abs(deltaYaw) > 0.0001 then
+            self.host:changeHeadPunchYaw(utils.toRadian(deltaYaw))
+        end]]
+
+        if not self.isLocalPlayer or self:_actionTimeValid() then
+            --播放开火动作
+            self.host:onGunFire()
+        end
+
+        --重置开火动作的的限制时间
+        if self.isLocalPlayer and self:_actionTimeValid() then
+            self.fireAction_time = tick() + self.cur_mode_data.FireAction_time * 1000
+        end
+
+        if self.cfg_id ~= 2809 then
+            self:_fireBullet()
+        else
+            local _interval = self:_getFireInterval()
+            self.fireStateTimer = tick() + self:_getFireInterval()
+        end
+
+        --给摄像机增加后坐力导致的准星上扬，并通过摄像机传递给控制角色
+        if self.isLocalPlayer then
+            --后坐导致的弹道变化
+            if self:_actionTimeValid() then
+                self:_calcKickBack(self.shotsFired)
+            end
+            --后坐导致的震动效果
+            --self:_calcFireCameraShake()
+            --辅助瞄准
+            --self:_calcAssistAim()
+        end
+    end,
+
+    --发射子弹以及修改相关状态
+    _fireBullet = function(self,linedir)
+        local tk = tick()
+        local bulletCreator = {
+            weapon = self,
+            muzzle_pos = Vector3.new(0,0,0),
+            startPos = Vector3.new(0,0,0),
+            dir = Vector3.new(0,0,0),
+            muzzleVelocity = self.muzzleVelocity,
+            maxRange = self.maxRange,
+            accuracy_x=0,
+            accuracy_y =0
+        }
+        --膛口位置
+        local bullet_type = self.config.Bullet_type
+        if bullet_type == 1 then
+            bulletCreator.muzzle_pos = self.handle.Muzzle.Position
+        else -- 实体
+            bulletCreator.muzzle_pos = self.host.bulletAnchor.Position
+        end
+        -- bulletCreator.muzzle_pos = self.handle.Muzzle.Position
+        if self.isInClient and self.isLocalPlayer then --本地玩家主控的枪，则使用摄像机位置
+            bulletCreator.startPos = game.WorkSpace.CurrentCamera.Position
+            bulletCreator.dir = linedir or self.host.head_rot:LookDir()
+            local dir = GameCamera.node.Rotation:LookDir()
+            --LOG('temp',"bulletCreator.dir = x="..bulletCreator.dir.x.. bulletCreator.dir.y.. bulletCreator.dir.z)
+            --LOG('temp',"bulletCreator.dir = x=".. dir.x.. "y=".. dir.y.. "z=".. dir.z)
+        else
+            local stance_state = self.host.node:GetAttribute("stance_state")
+            if stance_state == Const.CharactorStanceState.CROUCH then
+                bulletCreator.startPos = self.player.Character.Position + Vector3.new(0,Config.Const.role_foundation.fps_stand_height,0)--需要加上偏移
+            else
+                bulletCreator.startPos = self.player.Character.Position + Vector3.new(0,Config.Const.role_foundation.fps_crouch_height,0)--需要加上偏移
+            end
+            if self.host.isAi then
+                bulletCreator.userId = self.player.UserId
+                bulletCreator.teamId = self.host.teamId
+                bulletCreator.dir = -self.player.Character.Rotation:LookDir()
+                bulletCreator.startPos = bulletCreator.startPos + Vector3.new(self.aiOffsetX,0,self.aiOffsetZ)
+            else
+                local euler = self.player.Character.Euler
+                local rotate = Quaternion.FromEuler(euler.x, self.player.node:GetAttribute("Head_Pitch"), euler.z)
+                bulletCreator.dir = rotate:LookDir()
+            end
+            -- end
+        end
+        --创建子弹
+        local cur_accuracy_x = math.max(0, self.valueChangeForAccuracy_x.cur)
+        bulletCreator.accuracy_x = cur_accuracy_x--self.accuracy_x
+        bulletCreator.accuracy_y = self.valueChangeForAccuracy_y.cur--self.accuracy_y
+        bulletCreator.CollisionGroup = self.host.bulletCollisionGroup
+        bulletCreator.cur_mode_id = self.cur_mode_id
+
+        local num = 1
+        if self.special_attack and self.config.special_action == Const.WeaponSpecialAttack.SHOOT_ALL then
+            num = self:getCapacity()
+        end
+        for _ = 1, num do
+            local bullet = RayBullet.new()
+            bullet:calHit(bulletCreator)
+        end
+        
+        self:playFireSoundAndEffect()
+        
+        local _interval = self:_getFireInterval()
+        -- self.weaponStateTimer = self.weaponStateTimer + _interval
+        self.fireStateTimer = tick() + self:_getFireInterval()
+        
+        local reduce_num = 1
+        if self.special_attack and self.config.special_action == Const.WeaponSpecialAttack.SHOOT_ALL then
+            reduce_num = self:getCapacity()
+        end
+        self:reduceCapacity(reduce_num)
+        self:_setBulletsAttribute(false)
+        self.firedRoundsPerPull = self.firedRoundsPerPull + reduce_num
+
+        if not self:checkCapacityValid()  then
+            self:_setWeaponState(Const.WeaponState.DECOCKING)
+        elseif self:_isPassAllRoundsPerPull() then--打完本轮的所有子弹了
+            self:_setWeaponState(Const.WeaponState.IDLE)
+        elseif  not self.hasPulledTheTrigger then
+			self:_setWeaponState(Const.WeaponState.IDLE)
+        end
+
+        self:_updateBulletRemainingInBore()
+        if self:_isManualBolt() then
+            self.bulletRemainingInBore = false
+            self.haveFinishedCOCKING_WeaponIsManualBolt = false
+        end
+
+        --通知当前持有武器数据变化
+        if self.isLocalPlayer then
+            --todo 通知界面
+			self.host:updateAmmo(self:getCapacity(), self:getCapacityCarry())
+            Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_FIRE,{weapon_id = self.cfg_id})
+        end
+    end,
+
+    --@func 模拟武器状态
+    --@参数deltaTime 间隔事件
+    update = function(self,deltaTime)
+        local msec = tick()
+        --延迟关掉开火声音
+        -- if self.delay_stopFireSound then
+        --     self.delay_stopFireSound = self.delay_stopFireSound - deltaTime
+        --     if self.delay_stopFireSound <= 0 then
+        --         self:_stopFireSound()
+        --     end
+        -- end
+
+        self:_autoFireDetect(msec)
+        
+        local _ison = CMainGame.playerManager:GetRoleByUserId(self.player.UserId)
+        if _ison:GetIsAimAssist() then
+            if msec - self.aimAssist_timer > 100 then
+                if self.weaponState ~= Const.WeaponState.FIRING then
+                    -- CMainGame.AimAssist = false
+                    _ison:SetAimAssist(false)
+                end
+            end
+        end
+
+        --精度处理
+        if self.weaponState ~= Const.WeaponState.FIRING and self.weaponState ~= Const.WeaponState.FIRING_EX then
+            if self.delayFire then
+				self.delayFire = false
+				--[[if self.shotsFired > self.desc.accuracyMaxShotNum then
+					self.shotsFired = self.desc.accuracyMaxShotNum
+                end]]
+                local index = self:_getStateIndex()
+				self.decreaseShotsFiredTime = msec + self.cur_mode_data.recoil_cooling_time[index] --让停止攻击之后立即开始减少连射数
+			end
+        end
+
+        --最大连射数恢复
+        if self.weaponState ~= Const.WeaponState.FIRING and self.weaponState ~= Const.WeaponState.FIRING_EX and self.weaponState ~= Const.WeaponState.RELOADING then
+            if self.shotsFired > 0 then
+				if self.decreaseShotsFiredTime < msec then
+					--self.decreaseShotsFiredTime = msec + self.config.recoil_cooling_time[1]
+                    self.decreaseShotsFiredTime = 0
+					self.shotsFired = 0--self.shotsFired - 1 --改为立即清空连射数
+                end
+			end
+        end
+
+        --[[local bUpdateAccuracy = false
+		if self.weaponState ~= Const.WeaponState.RELOADING then
+			--做精度调节参数的回缩
+			if self.shotsFiredAdjustParaForAccuracy > 0 then
+				static float fTemp_Weapon_fDecreaseShotsInterval = float(cfg_Weapon_fDecreaseShotsInterval);
+				self.hotsFiredAdjustParaForAccuracy -= fElapsedTime/fTemp_Weapon_fDecreaseShotsInterval;
+				bUpdateAccuracy = TRUE;
+            end
+		end]]
+
+		self:_updateAccuracy(false)
+
+		--精度的平滑过度
+		if true then
+            --精度平滑过度
+			if self.valueChangeForAccuracy_x.changing then
+                self.valueChangeForAccuracy_x:update(deltaTime)
+				if self.cur_mode_data.crossHair_mode == 1 then
+					self.isAccDirty = true
+				end
+            end
+			if self.valueChangeForAccuracy_y.changing then
+                self.valueChangeForAccuracy_y:update(deltaTime)
+				if self.cur_mode_data.crossHair_mode == 1 then
+					self.isAccDirty = true
+				end
+            end
+
+            local cur_accuracy_x = math.max(0, self.valueChangeForAccuracy_x.cur)
+            self.sightRange = cur_accuracy_x * 25 -- 此值不知道应该是多少，需要调整
+            if self.isAccDirty then
+                --通知当前主角状态变化
+                if self.isLocalPlayer then
+                    --_G.client.uiBridge:setGameAttrDirty(uiconst.GameAttrDirty.Aim)
+					self.host:updateAim(self.sightRange)
+				--LOG('temp',"sightrange = ".. self.sightRange)
+                end
+                self.isAccDirty = false
+            end
+        end
+
+
+        --状态变化
+        if self.weaponState == Const.WeaponState.FIRING then
+            if msec > self.fireStateTimer then
+                self:_tryFire()
+            end
+        elseif self.weaponState == Const.WeaponState.FIRING_EX then
+            self:_tryFire()
+            self:reload()
+        elseif self.weaponState == Const.WeaponState.IDLE then
+            if msec > self.weaponStateTimer then
+				--处理单发枪，如果打完一发之后，需要拉枪栓，不管是否按住了左键
+				if self:needLoad() and self:_isPassAllRoundsPerPull() then
+                    -- self.haveFinishedCOCKING_WeaponIsManualBolt = false
+					self:_setWeaponState(Const.WeaponState.COCKING_PREPARE) --拉枪栓子弹上膛
+                elseif self:checkCapacityValid() then
+                    self:_setWeaponState(Const.WeaponState.READY)
+                    --[[if self.hasPulledTheTrigger then --又开枪了，继续开，否则置为等待开火状态
+                        self:_setWeaponState(Const.WeaponState.FIRING)
+                    else
+                         self:_setWeaponState(Const.WeaponState.READY)
+                    end]]
+                end
+            end
+        elseif self.weaponState == Const.WeaponState.PORTING then
+            if msec > self.weaponStateTimer then
+                --self._portDone(host_obj)
+                self:_setWeaponState(Const.WeaponState.READY)
+            end
+        -- elseif self.weaponState == Const.WeaponState.PREPARING then
+        --     if msec > self.weaponStateTimer then
+        --         if self:_isManualBolt() and not self.haveFinishedCOCKING_WeaponIsManualBolt then
+        --             self.host:onLoad()
+        --             self:_setWeaponState(Const.WeaponState.COCKING_PREPARE)
+        --         else
+        --             self:_setWeaponState(Const.WeaponState.READY)
+        --         end
+		-- 	end
+        elseif self.weaponState == Const.WeaponState.COCKING then
+            if msec > self.weaponStateTimer then
+                if self.haveFinishedCOCKING_WeaponIsManualBolt then
+                    if self:checkCapacityValid() then
+                        self:_setWeaponState(Const.WeaponState.READY)
+                        --实现上弹后返回开镜状态
+                    -- elseif self.numOfBulletsExtra[self.mode] > 0 and self.isLocalPlayer then--auto reload
+                    elseif self:checkCapacityCarry() and self.isLocalPlayer then
+                        self:reload()
+                    end
+                end
+			end
+        elseif self.weaponState == Const.WeaponState.COCKING_PREPARE then
+            if msec > self.weaponStateTimer then
+                if not self.is_sight_on or self.hasReleasedTheTrigger then
+                    self:_setWeaponState(Const.WeaponState.COCKING)
+                end
+			end
+        elseif self.weaponState == Const.WeaponState.RELOADING then
+
+        elseif self.weaponState == Const.WeaponState.DECOCKING then
+            if msec > self.weaponStateTimer then
+                if self.isLocalPlayer then
+                    --如果是逐弹上弹的，并且还有子弹在枪里，则不应该出现在空仓的逻辑里，调回上弹逻辑
+                    if self:_isOneByOneReloadType() and self:checkCapacityValid() then
+                        self:_setWeaponState(Const.WeaponState.RELOADING)
+                    end
+
+                    if not self.is_sight_on or self.hasReleasedTheTrigger then
+                         --强制关镜
+                        if self.is_sight_on then
+                            self:portArms(false,true)
+                        end
+                        --自动换蛋夹
+                        -- if self.numOfBulletsExtra[self.mode] > 0 then
+                        if self:checkCapacityCarry() then
+                            if true then
+                                self:reload()
+                            end
+                        else --没子弹了，看看有没有其他子弹
+                            self:_resetWeaponState(not self.is_sight_on)
+                        end
+                    end
+                end
+            end
+        elseif self.weaponState == Const.WeaponState.READY then
+            if msec > self.weaponStateTimer then
+                if self.hasPulledTheTrigger then
+                    self:pullTheTrigger()
+                end
+            end
+        end
+
+    end,
+
+    --@func 自动射击检测
+    _autoFireDetect = function(self, _msec)
+        if not self.enable_control then return end
+        local _ison = CMainGame.playerManager:GetRoleByUserId(self.player.UserId)
+        -- if not CMainGame.AutoFire then return end
+        -- if not self.isLocalPlayer then return end
+        local data= CMainGame.SettingManager:getValue(Const.Set.OPERATE_MODE)
+        if not _ison:GetIsAutoFire() or not self.isLocalPlayer or data~=3  then
+            return 
+        end
+
+        if not self._autoDetect_timer then
+            self._autoDetect_timer = _msec
+        end
+
+        if (not self._autoFire_On) and (self.weaponState == Const.WeaponState.READY) then --判定阶段
+            if self.host.hasPlayerActiveTool then
+                return
+            end
+    
+            if (_msec - self._autoDetect_timer) <= 10 then return end
+            self._autoDetect_timer = _msec
+            local startPos = game.WorkSpace.CurrentCamera.Position
+            local dir = GameCamera.node.Rotation:LookDir()
+            local ret = WS:SweepSphere(Config.Const.AutoFire_Config.AutoFire_Range, startPos, dir, self.auto_fire_dist, false, self.host.bulletCollisionGroup)
+            if ret.isHit then
+                if ret.obj then
+                    if ret.obj:GetAttribute("HitPart") then
+                        --检测到玩家
+                        self._autoFire_On = true
+                        -- print("#########已命中，目标的网格体为：", ret.obj.CollideGroupID,'  Name='..ret.obj.Name)
+                        LOG('AutoFire', 'Hit Player, Part='..ret.obj:GetAttribute("HitPart"))
+                    else
+                        if CUR_PLATFORM == Enum.EnumDeviceType.WIN then
+                            if self._auto_fire_detect_name ~= ret.obj.Name then
+                                self._auto_fire_detect_name = ret.obj.Name
+                                LOG('AutoFire','Hit Object But Not Player, Name='..self._auto_fire_detect_name)
+                            end
+                        end
+                    end
+                end
+            end
+        elseif self._autoFire_On then
+            --延时检测阶段
+            if not self.hasActiveAutoFire then
+                if (_msec - self._autoDetect_timer) >= Config.Const.AutoFire_Config.AutoFire_ActiveTime then
+                    self.hasActiveAutoFire = true
+                    self._autoDetect_timer = _msec
+                    self:pullTheTrigger(false, true)
+                end
+            else
+                --停止判定
+                if (_msec - self._autoDetect_timer) >= Config.Const.AutoFire_Config.AutoFire_Duration then
+                    if not self.host.hasPlayerActiveTool then
+                        local need_stop = self.weaponState == Const.WeaponState.DECOCKING
+                        if not need_stop  then
+                            local startPos = game.WorkSpace.CurrentCamera.Position
+                            local dir = GameCamera.node.Rotation:LookDir()
+                            local ret = WS:SweepSphere(10, startPos, dir, 2000, false, self.host.bulletCollisionGroup)
+                            if (not ret) or (not ret.obj) or (not ret.obj:GetAttribute("HitPart")) then
+                                need_stop = true 
+                                LOG('AutoFire','#########停止射击')
+                            else
+                                self._autoDetect_timer = _msec
+                            end
+                        end
+
+                        if need_stop then
+                            self._autoFire_On = false
+                            self.hasActiveAutoFire = false
+                            self:releaseTheTrigger(true)
+                        end
+                    end
+                end
+            end
+        end
+    end,
+
+    --@func 设置为默认状态
+    _resetWeaponState = function(self,play_action)
+        if play_action then
+            --trace_log('fire ready idle')
+            OUtils.playAnim('idle',self.player)
+            --[[if host_obj and host_obj:modules_has('roleControl') then
+                MODULES[host_obj].roleControl.setSubState(Const.SubState.IDLE)
+                MODULES[host_obj].roleControl.doTogglePortArms(true)
+            end]]
+        end
+        self:_setWeaponState(Const.WeaponState.READY)
+    end,
+
+	--@func 右键的特殊方式
+	specialAttackBegin = function(self, mode)
+		-- if self.config.aim_mode == 0 then --无
+		-- 	return
+		-- elseif self.config.aim_mode == 1 then--机瞄
+		-- 	self:portArms(mode == 2)
+		-- elseif self.config.aim_mode == 2 then--准镜
+		-- 	self:portArms(mode == 2)
+        --     self:_portDone()
+		-- elseif self.config.aim_mode == 3 then--特殊攻击1
+		-- end
+	end,
+
+    --@func 扣动扳机
+    --@参数bSpecialAttack 是否是特殊攻击，比如刀得重击
+    --@返回 无
+    pullTheTrigger = function(self, special_attack, auto_fire)
+        if not self.enable_control then return end
+		if self.isLocalPlayer then
+			if CMainGame.showCursor then
+				return
+			end
+            --死亡状态，不能开枪
+            if self.host.isDead then
+                return
+            end
+		end
+
+        local bSuc = false
+        if self.weaponState == Const.WeaponState.READY then
+			if self.isLocalPlayer then
+                if not self:checkCapacityValid() then
+					self:_setWeaponState(Const.WeaponState.DECOCKING)			--空仓挂机
+					if self.isLocalPlayer then
+						OUtils.playSound2D('fire_empty')
+					end
+					return
+				end
+			end
+            if self:_isBow() and not auto_fire then
+                if not auto_fire then
+                    self.host:onHoldTrigger(true)
+                else
+                    self.host:onHoldTrigger(false)
+                end
+                self:_setWeaponState(Const.WeaponState.HOLDING)
+            elseif self:_isGatlin() then
+                self:_setWeaponState(Const.WeaponState.PRE_FIRE)
+            else
+                self:_setWeaponState(Const.WeaponState.FIRING)
+            end
+            bSuc = true
+        elseif self.weaponState == Const.WeaponState.RELOADING then
+            if tick() < self.fireStateTimer then
+                return
+            elseif self:checkCapacityValid() then
+                --修改為打断上弹立即開火
+                self:_setWeaponState(Const.WeaponState.FIRING)
+                bSuc = true
+            end
+        elseif self.weaponState == Const.WeaponState.PRE_FIRE then
+            if self.pre_fire_ready then
+                self:_setWeaponState(Const.WeaponState.FIRING)
+            end
+            bSuc = true
+        end
+
+        self.special_attack = special_attack or false
+        self.hasPulledTheTrigger = true
+        self.hasReleasedTheTrigger = false
+
+        if self.config.special_action == Const.WeaponSpecialAttack.FULL_AUTO then
+            self:_fixFireRate(self.special_attack)
+        end
+
+        if not auto_fire then
+            self._autoDetect_timer = tick()
+            self._autoFire_On = false
+            self.hasActiveAutoFire = false
+        end
+
+        if bSuc then
+			if self.isLocalPlayer then
+				--发送event
+				Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_PULL,{weapon_id = self.cfg_id,attack_type=self.attack_type})
+			end
+        else
+            --print('weapon pull the trigger State = '..self.weaponState..'  config_id = '..self.cfg_id)
+        end
+	    return bSuc
+    end,
+
+    --@func 释放扳机
+    --@参数force 是否强制释放
+    --@返回 无
+    releaseTheTrigger = function(self,force)
+        --trace_log('fire releaseTheTrigger')
+        -- if not force then
+        --     if self.weaponState == Const.WeaponState.FIRING and self:getSelectiveMode() == Const.ShootSelectiveMode.BURST then
+        --         return
+        --     end
+        -- end
+	    --松开扳机时，重置一下是否按下扳机
+        self.hasPulledTheTrigger = false
+        self.hasReleasedTheTrigger = true
+        self.special_attack = false
+
+        self._autoDetect_timer = tick()
+        self._autoFire_On = false
+        self.hasActiveAutoFire = false
+
+        if self:_isBow() then
+            self.host:onHoldTrigger(false)
+        end
+
+        if self:getSelectiveMode() ~= Const.ShootSelectiveMode.BURST then
+            local seedMsg = false
+            if (self.weaponState == Const.WeaponState.FIRING and self.firedRoundsPerPull >= 1) or not self.isLocalPlayer then
+                -- if self.numOfBulletsInGun[self.mode] > 0 then
+                if self:checkCapacityValid() then
+                    self:_setWeaponState(Const.WeaponState.IDLE)
+                else
+                    self:_setWeaponState(Const.WeaponState.DECOCKING)
+                end
+                seedMsg = true
+            elseif self.weaponState == Const.WeaponState.DECOCKING or self.weaponState == Const.WeaponState.IDLE then
+                seedMsg = true
+            end
+    
+            if self.weaponState == Const.WeaponState.HOLDING then
+                self:_setWeaponState(Const.WeaponState.FIRING)
+            end
+    
+            if self:_isGatlin() then
+                self:_setWeaponState(Const.WeaponState.IDLE)
+                self.host:onIdle()
+                self.pre_fire_ready = false
+            end
+        end
+
+		if seedMsg then
+			if self.isLocalPlayer then
+				--发送event
+				Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_RELEASE,{weapon_id = self.cfg_id,ammo=self.numOfBulletsInGun})
+			end
+		end
+        return true
+    end,
+
+    --@func 开关镜
+    --@参数port 开or关
+    --@参数force 强制
+    --@返回 无
+    portArms = function(self,port,force)
+        if port then
+            if not self.is_sight_on then
+                if self.weaponState == Const.WeaponState.RELOADING or self.weaponState == Const.WeaponState.PREPARING then
+                    return--上弹中不能开镜
+                end
+                self.is_sight_on = true
+                self:_setWeaponState(Const.WeaponState.PORTING)
+                if self.isInClient then
+                    OUtils.playAnim('gun_port',self.player)
+					--设置灵敏度
+                    if self.isLocalPlayer then
+					    GameCamera:setWeaponSensitivity(self.config.ADS_sensitivity)
+                    end
+					--设置FOV
+                    if self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM then
+                        GameCamera:scaleFOV(self.config.ADS_FOV, -1)
+                    else
+                        GameCamera:scaleFOV(self.config.ADS_FOV, 0.3)
+                    end
+					--设置使用者的移速下降
+					self.host:onGunPort(true,self.config.ADS_speed)
+
+                    self.host:showAimUI(true, self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM)
+                end
+            end
+        else
+            self.is_sight_on = false
+            if not force then
+                self:_setWeaponState(Const.WeaponState.READY)
+            end
+            if self.isInClient then
+                --todo 怎么恢复到腰射状态
+				--self.config.HIP_crossHair
+				--设置灵敏度
+                if self.isLocalPlayer then
+                    GameCamera:setWeaponSensitivity(1)
+                end
+				--设置FOV
+				-- GameCamera.node.FieldOfView = Const.DefaultFOV
+                if self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM then
+                    GameCamera:scaleFOV(Const.DefaultFOV, -1)
+                else
+                    GameCamera:scaleFOV(Const.DefaultFOV, 0.3)
+                end
+                --OUtils.playAnim(self.player,'gun_port')
+                if self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM then
+                    -- self.host:ShowHandle(true)
+                    self.handle.Visible = true
+                end
+
+                --设置使用者的移速下降
+				self.host:onGunPort(false, 1)
+
+                self.host:showAimUI(false, self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM)
+            end
+        end
+    end,
+
+    -- 开镜结束
+    _portDone = function(self)
+        if not self.is_sight_on then
+            return
+        end
+
+        if self.config.special_action == Const.WeaponSpecialAttack.SNIPER_AIM then
+            --替换准星todo
+			self.crossHair = self.config.sight_crossHair
+            --隐藏枪
+            --  self.host:ShowHandle(false)
+            self.handle.Visible = false
+        end
+    end,
+
+    -- 拉栓结束
+    loadEnd = function(self)
+        self.host:onloadEnd()
+        self.haveFinishedCOCKING_WeaponIsManualBolt = true
+    end,
+
+    --尝试换弹
+    tryReload = function(self)
+        LOG('RELOAD','GUN Config_id='..self.cfg_id)
+        --死亡状态，不能开枪
+        if not self:canReload() then
+            LOG('RELOAD','ClientGun Cannot Reload capacityCarry='..self:getCapacityCarry()..' self:getMagazineCapacity()='..self:getMagazineCapacity()..' self:getCapacity()='..self:getCapacity()..'  ')
+            return
+        end
+        if self.host.isDead then
+            return
+        end
+        -- if self.numOfBulletsExtra[self.mode] <= 0 then
+        if self:getCapacityCarry() <= 0 then
+            if self.isLocalPlayer then
+                self:_resetWeaponState(not self.is_sight_on)
+            end
+            LOG('RELOAD',' self:getCapacityCarry() <= 0')
+        else
+            self:reload()
+        end
+    end,
+
+    --播放换弹声音
+    _tryPlayReloadSound = function(self)
+        if self.reloadSoundNodes and #self.reloadSoundNodes > 0 then
+            self:_tryPlaySound(self.reloadSoundNodes[math.random(#self.reloadSoundNodes)], true)
+        else
+            self:_tryPlaySound(self.reloadSoundNode, true)
+        end
+    end,
+
+    --@func 换弹
+    --@参数load_time 强制指定换弹时间
+    --@返回 无
+    reload = function(self)
+        if self.isLocalPlayer then
+            -- if self.host:canReload() and self.weaponState ~= Const.WeaponState.RELOADING and self.numOfBulletsExtra[self.mode] > 0 and self.weaponStateTimer < tick() then
+            -- LOG('RELOAD','GUN reload weapon_state='..self.weaponState)
+            if self.host:canReload() and self.weaponState ~= Const.WeaponState.RELOADING and self:checkCapacityCarry() and self.weaponStateTimer < tick() then
+                local cap = self.bulletRemainingInBore and (self:getMagazineCapacity() + 1) or self:getMagazineCapacity()
+                -- LOG('RELOAD',' cap = '..cap)
+                if self:getCapacity() < cap then
+					self.weaponStateTimer = tick() + self.cur_mode_data.reload_time
+                    if self:_isOneByOneReloadType() then
+                        --装填
+						-- self.host:onReload()
+                    else
+                        --这里区别一下是否有弹膛留单，播放不同动作
+                        -- if self.bulletRemainingInBore and (self.config.support_RIB == 1) then
+						-- 	self.host:onReload()
+                        -- else
+						-- 	self.host:onReload()
+                        -- end
+                        self.firstReload = false--true --改成false貌似时对的
+
+                        self:_tryPlayReloadSound()
+                    end
+
+                    self.host:onReload()
+                    self:_setWeaponState(Const.WeaponState.RELOADING)
+
+                    -- self.haveFinishedCOCKING_WeaponIsManualBolt = true
+                    return true
+                else
+                    return false
+                end
+            end
+        else
+            if self:_isOneByOneReloadType() then
+                --装填
+				self.host:onReload()
+                self:_setWeaponState(Const.WeaponState.RELOADING)
+            else
+                --这里区别一下是否有弹膛留单，播放不同动作
+                if self.bulletRemainingInBore then
+                    OUtils.playAnim('gun_reload',self.player)
+                else
+                    --host_obj:event(_G.ModuleEvent.OnRoleWeaponState,'gun_reload',self.reloadTime)
+                end
+                --散弹枪不能加速换弹
+                self.weaponStateTimer = tick() + self.cur_mode_data.weapon_reloadTime
+                self.firstReload = false--true --改成false貌似时对的
+
+                self:_setWeaponState(Const.WeaponState.RELOADING)
+                self:_tryPlayReloadSound()
+            end
+            --散弹枪不能加速换弹
+            --self.weaponStateTimer = world.msec + loadTime
+            --self.firstReload = false--true --改成false貌似时对的
+            --self:_setWeaponState(Const.WeaponState.RELOADING)
+            return true
+        end
+
+        return false
+    end,
+
+    --@func 动画调用上弹逻辑可以执行了
+    _animReload = function(self)
+        if self:_isOneByOneReloadType() then
+            --一发发装填
+            local fill_full = true
+
+            if self:getCapacity() < self:getMagazineCapacity() and self:getCapacityCarry() > 0 then--上满了或者没有余弹了
+                --上一发
+                -- self.numOfBulletsInGun[self.mode] = self.numOfBulletsInGun[self.mode] + 1
+                self:setCapacity(self:getCapacity() + 1)
+                self:setCapacityCarry(self:getCapacityCarry() - 1)
+                if self.isLocalPlayer then
+                    --todo 通知服务器
+					Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_RELOAD,{weapon_id = self.cfg_id,ammo=self.numOfBulletsInGun,ammoExtra=self.numOfBulletsExtra})
+                    self:_tryPlayReloadSound()
+                    --通知当前持有武器数据变化 todo
+					self.host:updateAmmo(self:getCapacity(), self:getCapacityCarry())
+                    self:_setBulletsAttribute(true)
+                end
+                if self:getCapacity() < self:getMagazineCapacity() and self:getCapacityCarry() > 0 then --上满了或者没有余弹了
+                    fill_full = false
+                end
+            end
+
+            self.firedRoundsPerPull = 0
+
+            if fill_full then
+                self.host:setLocalPlayerActionState(Const.CharactorActionState.IDLE)
+                self.firedRoundsPerPull = 0
+                if self:_isManualBolt() and not self.haveFinishedCOCKING_WeaponIsManualBolt then
+                    self:_setWeaponState(Const.WeaponState.COCKING)
+                else
+                    self:_setWeaponState(Const.WeaponState.READY)
+                end
+            end
+        end
+    end,
+
+    --@func 更换弹匣
+    _animReloadAll = function(self, _number)
+        --引擎概率会多次调用关键帧，先写个逻辑代码规避一下
+        if _number and self.numOfBulletsInGun == self:getMagazineCapacity() then
+            _number = 0
+        end
+        --计算要添加的子弹数。
+        local nAddNumOfBullets = _number or self:getMagazineCapacity() - self:getCapacity()--self.magazineCapacity[self.mode] - self.numOfBulletsInGun[self.mode]
+        
+        --更换弹夹式
+        if self:getCapacityCarry() ~= -1 then
+            nAddNumOfBullets = math.min(self:getCapacityCarry(), nAddNumOfBullets)
+        end
+    
+        self:setCapacity(self:getCapacity() + nAddNumOfBullets)
+        self:setCapacityCarry(self:getCapacityCarry() - nAddNumOfBullets)
+        if self.isLocalPlayer then
+            --todo 通知服务器
+            Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_RELOAD,{weapon_id = self.cfg_id,ammo=self.numOfBulletsInGun,ammoExtra=self.numOfBulletsExtra})
+            --todo 通知当前持有武器数据变化
+            self.host:updateAmmo(self:getCapacity(), self:getCapacityCarry())
+            self:_setBulletsAttribute(true)
+        end
+    
+        self.firedRoundsPerPull = 0
+        if self:_isManualBolt() and not self.haveFinishedCOCKING_WeaponIsManualBolt then
+            self:_setWeaponState(Const.WeaponState.COCKING)
+        else
+            self:_setWeaponState(Const.WeaponState.READY)
+        end
+    end,
+
+    --@func 存储子弹属性
+    _setBulletsAttribute = function(self, sync)
+        local _mode = self.mode
+        if not self.mode_datas[self.mode] then
+            _mode = 1
+        end
+
+        -- if not self.node then
+        --     print('Player ['..self.host.player.UserId..'] tool equiped ID='..self.cfg_id..' node is nil')
+        -- end
+
+        -- self.node:SetAttribute("Ammo".._mode,self.numOfBulletsInGun)
+        -- self.node:SetAttribute("AmmoExtra".._mode,self.numOfBulletsExtra)
+        if self.Ammos[_mode] then self.Ammos[_mode] = self.numOfBulletsInGun end
+        if self.AmmoExtras[_mode] then self.AmmoExtras[_mode] = self.numOfBulletsExtra end
+    
+        if sync and self.host then
+            local tbl = {}
+            tbl.userId = self.host.player.UserId
+            tbl.uuid = self.uuid
+            tbl.AmmoExtra = {}
+            for index = 1, #self.AmmoExtras do
+                tbl.AmmoExtra[index] = self.AmmoExtras[index]
+            end
+
+            Bridge:SendMessageToServer(Proto.ClientMSGID.CLIENT_WEAPON_SYNC_AMMO, tbl)
+        end
+    end,
+
+    --@func 根据当前的模式刷新子弹的数量
+    refreshBulletNumber = function(self, mode, once)
+    end,
+
+    --@func 更新精度
+    --@参数
+    --@返回 无
+    _updateAccuracy = function(self,afterShot)
+        local index = self:_getStateIndex()
+
+        --这里使用调节过的子弹发射数来计算精度，因为想达到在切换弹夹后，精度达到最大值
+        local nAdjustShotsFired = false--int(m_fShotsFiredAdjustParaForAccuracy);
+        if afterShot then
+            nAdjustShotsFired = true
+            --[[if self.shotsFired > 0 then
+                nAdjustShotsFired = true
+            elseif self.valueChangeForAccuracy_x.changing then--准星不在扩散，第一枪不改变扩散
+                nAdjustShotsFired = true
+            end]]
+        end
+        if nAdjustShotsFired then
+            self.accuracy_x = math.min(self.cur_mode_data.spread_max[index], self.valueChangeForAccuracy_x.cur + self.cur_mode_data.spread_radius_correct[index])
+            self.accuracy_y = 0.5*OUtils.toRadian(self.valueChangeForAccuracy_y.cur+self.cur_mode_data.spread_range_correct[index])
+        else
+            self.accuracy_x = math.min(self.cur_mode_data.spread_max[index], self.cur_mode_data.spread_radius[index])
+            self.accuracy_y = 0.5*OUtils.toRadian(self.cur_mode_data.spread_range[index])
+        end
+
+        --精度平滑改变
+        if true then
+            local accSmooth = function(valueChangeForAccuracy,accuracy)
+                local oldAccuracy = valueChangeForAccuracy.dest
+                if oldAccuracy ~= accuracy then --精度发生了改变
+                    if self.weaponState == Const.WeaponState.FIRING or self.weaponState == Const.WeaponState.FIRING_EX then
+                        if accuracy > oldAccuracy then --开枪中增加则突变
+                            local changeTime = 0
+                            valueChangeForAccuracy:stop()
+                            valueChangeForAccuracy:start(oldAccuracy, accuracy, changeTime)
+                        else
+							local changeTime = math.abs(accuracy - valueChangeForAccuracy.cur)*self.cur_mode_data.spread_cooling_time*0.001
+                            valueChangeForAccuracy:stop()
+                            valueChangeForAccuracy:start(valueChangeForAccuracy.cur, accuracy, changeTime)
+                        end
+                    else
+						local changeTime = math.abs(accuracy - valueChangeForAccuracy.cur)*self.cur_mode_data.spread_cooling_time*0.001
+                        valueChangeForAccuracy:stop()
+                        valueChangeForAccuracy:start(valueChangeForAccuracy.cur, accuracy, changeTime)
+                    end
+                end
+            end
+            accSmooth(self.valueChangeForAccuracy_x,self.accuracy_x)
+            accSmooth(self.valueChangeForAccuracy_y,self.accuracy_y)
+        end
+    end,
+
+    --@func 更新枪膛留单
+    --@参数
+    --@返回 无
+    _updateBulletRemainingInBore = function(self)
+	    -- self.bulletRemainingInBore = (self.numOfBulletsInGun > 0 and self.supportBulletInBore)
+        self.bulletRemainingInBore = self.numOfBulletsInGun > 0
+    end,
+
+    --@func 是否打光了本次扣动扳机应打出得所有子弹
+    --@参数
+    --@返回 无
+    _isPassAllRoundsPerPull = function(self)
+        local _selectiveMode = self:getSelectiveMode()
+        if self.special_attack and self.config.special_action == Const.WeaponSpecialAttack.FULL_AUTO then
+            _selectiveMode = Const.ShootSelectiveMode.FULLAUTO
+        end
+        --特殊子弹，打一下就停止
+        if self.isSpecialBulletOn then
+            return true
+        end
+        -- --TODO 这里你好配置了，临时写一下
+        -- if self.cfg_id == 2507 then
+        --     if self.mode == 2 then
+        --         return (self.firedRoundsPerPull >= 2)
+        --     else
+        --         return false
+        --     end
+        -- end
+        if _selectiveMode == Const.ShootSelectiveMode.FULLAUTO then
+            return false
+        else
+            -- local num = 1 --连发数
+            -- if _selectiveMode == Const.ShootSelectiveMode.BURST then
+            --     num = 3
+            -- end
+            return (self.firedRoundsPerPull >= self.selectiveNum)
+        end
+    end,
+
+    _isSelectiveModeAuto = function(self)
+        local _selectiveMode = self:getSelectiveMode()
+        if self.special_attack and self.config.special_action == Const.WeaponSpecialAttack.FULL_AUTO then
+            _selectiveMode = Const.ShootSelectiveMode.FULLAUTO
+        end
+        return _selectiveMode == Const.ShootSelectiveMode.BURST or _selectiveMode == Const.ShootSelectiveMode.SEMI
+    end,
+
+    _getFireInterval = function(self)
+        local _interval = self.fireInterval
+        if self._autoFire_On and self:_isSelectiveModeAuto() then
+            _interval = _interval * (1 + self.autofire_speed)
+        end
+        return _interval
+    end,
+
+    --@func 是否需要上膛动作
+    --@参数
+    --@返回 无
+    _isManualBolt = function(self)
+        return self:getSelectiveMode() == Const.ShootSelectiveMode.SEMI_EX
+    end,
+
+    --@func 是否需要一颗一颗子弹的换弹，比如霰弹枪
+    --@参数
+    --@返回 无
+    _isOneByOneReloadType = function(self)
+        if self.cur_mode_data.reload_type == 3 then
+            local _canAdd = self.magazineCapacity - self.numOfBulletsInGun  
+            if self.numOfBulletsExtra < _canAdd then
+                _canAdd = self.numOfBulletsExtra
+            end
+            if (_canAdd/5) >= 1 then
+                return false
+            else
+                return true
+            end
+        end
+        return self.cur_mode_data.reload_type == 2
+    end,
+
+    --获得一次性上弹的数量
+    getReloadSubType = function(self)
+        local _canAdd = self.magazineCapacity - self.numOfBulletsInGun  
+        if self.numOfBulletsExtra < _canAdd then
+            _canAdd = self.numOfBulletsExtra
+        end
+        if _canAdd >= 10 then
+            return 2
+        elseif _canAdd >= 5 then
+            return 1
+        else
+            return 0
+        end
+    end,
+
+    --两种上弹方式混合的枪械，计算一下第一次上弹结束剩余多少颗子弹没有上
+    getReloadRemains = function(self)
+        local reloadRemains = 0
+        local reloadRemains = self.magazineCapacity - self.numOfBulletsInGun  
+        if self.numOfBulletsExtra < reloadRemains then
+            reloadRemains = self.numOfBulletsExtra
+        end
+        while reloadRemains >= 5 do
+            reloadRemains = reloadRemains - 5
+        end
+
+        return reloadRemains
+    end,
+
+    --@func 切换状态是否有动作
+    --@参数
+    --@返回 bool--true有动作---false无动作
+    needChangeAction = function(self)
+        return true
+    end,
+
+    --@func 模式2换弹是否需要切换回模式1
+    --@参数
+    --@返回 --true切回模式1 ---false当前模式直接切换
+    mode2ReloadBack = function(self)
+        if not self.cur_mode_data[self.mode] then
+            return true
+        end
+        return false
+    end,
+
+    --@func 是否可以开关镜
+    --@参数
+    --@返回 无
+    _canPortArms = function(self)
+        return (self.weaponState == Const.WeaponState.READY or self.weaponState == Const.WeaponState.DECOCKING or 
+        self.weaponState == Const.WeaponState.FIRING or self.weaponState == Const.WeaponState.FIRING_EX)
+    end,
+
+    --@func 武器被装备
+    --@返回
+    onEquiped = function(self)
+        --print('Tool Equiped cfg_id = '..self.cfg_id)
+        if self.host and not self.host.isLocalPlayer then
+            LOG('TPSError', 'Player '..self.host.player.UserId..' Tool OnEquiped '..self.cfg_id..' uuid='..self.uuid)
+        end
+        self.node.Visible = true
+        self.handle.Visible = true
+        if self.host and self.host.isLocalPlayer then
+            LOG('WeaponProto', 'Client Player ['..self.host.player.UserId..'] tool equiped ID='..self.cfg_id..'[UUID='..self.uuid..']')
+        end
+        self:_setWeaponState(Const.WeaponState.PREPARING)
+        self.is_sight_on = false
+		self.isAccDirty = true
+		self.isEquiped = true
+        self.host:onEquipTool(self, function(role_node)
+            --播放武器特效(部件自发特效)
+            EffectManager:playWeaponEffect(EffectDefine.EnumEffectType.eWeaponPart, {weaponId = self.cfg_id, parent = self.handle.Muzzle, charactorFps = role_node})
+        end)
+
+        if self.host and (not IsPveMonster(self.player.UserId)) and self.controller_loaded then
+            self.host:onToolControllerLoaded(self)
+        end
+
+        if self.host and self.host.isLocalPlayer and self.localplayer_tps_controller_loaded then
+            self.host:onToolLocalPlayerTPSControllerLoaded(self)
+        end
+
+        if self.isLocalPlayer then
+            self:portArms(false, true)
+        end
+
+        local bullet_type = self.config.Bullet_type
+        local bullet_cfg = AutoConfig.Data.gun_bullet[bullet_type]
+        self.host:BindToolBulletModel(self.isLocalPlayer and bullet_cfg.hanging_point or bullet_cfg.thrid_hanging_point, self.bullet_node, bullet_cfg.hand_scale)
+
+        for index = 1, #self.oneShot_list do
+            SoundManager:bindOneShotNode(self.oneShot_list[index])
+        end
+
+        if self.bullet_node then
+            self.bullet_node.Visible = true
+        end
+
+        if self.isLocalPlayer then
+            if self.SwitchSoundNode then
+                SoundManager:play(self.SwitchSoundNode)
+            end
+    
+            local function gunUpdate(dt)
+                self:update(dt)
+            end
+            local runService = game:GetService("RunService")
+            if runService then
+                -- local str = 'GunUpdate'..self.uuid
+                runService:BindToRenderStep('GunUpdate'..self.uuid, Enum.RenderPriority.Camera.Value-1,gunUpdate)
+                -- print('bindGunUpdate '..str)
+            end
+        end
+        -- Events:Trigger(EventID.Load_Weapons, {weapon_id = self.cfg_id})
+    end,
+
+    --@func 收起武器
+    --@返回
+    onUnequipped = function(self)
+        -- print('Tool UnEquiped cfg_id = '..self.cfg_id)
+
+        if (not self.host) or (not self.host.tool) or (self.host.tool.uuid ~= self.uuid) then
+            return
+        end
+
+        if self.host and self.host.isLocalPlayer then
+            LOG('WeaponProto', 'Client Player ['..self.host.player.UserId..'] tool UnEquiped ID='..self.cfg_id..'[UUID='..self.uuid..']')
+        end
+        self.handle.Parent = self.node
+        self.handle.Visible = false
+        self.node.Visible = false
+        self.isEquiped = false
+	    self.needRecoverPortArms = false		--在拉完枪机之后恢复开镜状态
+        self.hasPulledTheTrigger = false
+        self.hasReleasedTheTrigger = true
+        self:_setWeaponState(Const.WeaponState.READY)
+        
+        -- self:portArms(false)
+        
+        if self.isLocalPlayer then
+            GameCamera:setWeaponSensitivity(1)
+            if self.is_sight_on then
+                self:portArms(false)
+            end
+            local runService = game:GetService("RunService")
+            if runService then
+                runService:UnbindFromRenderStep("GunUpdate"..self.uuid)
+            end
+        end
+        self.is_sight_on = false
+        if self.sound_node then
+            self.sound_node:StopSound()
+            self.sound_node = nil
+        end
+
+        local host = self.host
+        if host and host.isLocalPlayer then
+
+            if self.SwitchSoundNode and  self.isLocalPlayer then
+                self.SwitchSoundNode:StopSound()
+            end
+        end
+
+        local bullet_type = self.config.Bullet_type
+        if bullet_type ~= 1 and self.bullet_node then
+            self.bullet_node.Parent = self.node
+            self.bullet_node.Visible = false
+        end
+
+        for index = 1, #self.oneShot_list do
+            self.oneShot_list[index].Parent = self.node
+        end
+        self.oneShot_index = 1
+        
+        --移除武器通用特效.fix快速切武器时能看到残留的特效(定时器移除具有延后性)
+        EffectManager:release({parent = self.handle.Muzzle, effectName = 'EFFECT_COMMON_NODE'})
+
+        --移除武器部件特效
+        EffectManager:release({parent = self.handle.Muzzle, effectName = 'WEAPON_PART_EFFECT'})
+
+        -- Events:Trigger(EventID.UnLoad_Weapons, {weapon_id = self.cfg_id})
+    end,
+
+    --@func 销毁
+    --@返回
+    release = function(self)
+        -- local host = self.host
+        -- if host then
+        --     host:onToolReleased(self)
+        -- end
+        if self.host and self.host.isLocalPlayer then
+            LOG('WeaponProto', 'Client Player ['..self.host.player.UserId..'] tool release ID='..self.cfg_id..'[UUID='..self.uuid..']')
+        end
+        -- self.node = nil
+
+        if self.isLocalPlayer then
+            local runService = game:GetService("RunService")
+            if runService then
+                runService:UnbindFromRenderStep("GunUpdate"..self.uuid)
+            end
+        end
+
+        if self.host then
+            self.host:onToolReleased(self)
+        end
+
+        if self.controller_load_handler then
+            self.controller_load_handler:disconnect()
+            self.controller_load_handler = nil
+        end
+
+        if self.tps_controller_load_handler then
+            self.tps_controller_load_handler:disconnect()
+            self.tps_controller_load_handler = nil
+        end
+
+        if self.handle_load_handler then
+            self.handle_load_handler:disconnect()
+            self.handle_load_handler = nil
+        end
+
+        if self.signalInstance then
+            self.signalInstance:disconnect()
+            self.signalInstance = nil
+        end
+
+        -- AssetContent.CancelCallback(self.cfg_id, self.uuid)
+
+        if self.controller then
+            -- self.controller:Destroy()
+            self.controller = nil
+        end
+
+        if self.localplayer_tps_controller then
+            -- self.localplayer_tps_controller:Destroy()
+            self.localplayer_tps_controller = nil
+        end
+
+        if self.Muzzle then
+            self.Muzzle.Parent = nil
+            self.Muzzle = nil
+        end
+
+        ---[[ 释放音效
+        for index = 1, #self.oneShot_list do
+            self.oneShot_list[index].Parent = nil
+        end
+        self.oneShot_list = nil
+
+        if self.reloadSoundNodes then
+            for index = 1, #self.reloadSoundNodes do
+                self.reloadSoundNodes[index].Parent = nil
+            end
+        end
+        self.reloadSoundNodes = nil
+        if self.fireSoundNode then
+            self.fireSoundNode.Parent = nil
+            self.fireSoundNode = nil
+        end
+        if self.fireSoundLoopNode then
+            self.fireSoundLoopNode.Parent = nil
+            self.fireSoundLoopNode = nil
+        end
+        if self.fireSoundEndNode then
+            self.fireSoundEndNode.Parent = nil
+            self.fireSoundEndNode = nil
+        end
+        if self.reloadSoundNode then
+            self.reloadSoundNode.Parent = nil
+            self.reloadSoundNode = nil
+        end
+        if self.SwitchSoundNode then
+            self.SwitchSoundNode.Parent = nil
+            self.SwitchSoundNode = nil
+        end
+        if self.boltSoundNode then
+            self.boltSoundNode.Parent = nil
+            self.boltSoundNode = nil
+        end
+        --]]
+
+        self.host = nil
+        self.handle.Parent = nil
+        self.handle = nil
+
+        if CMainGame.debug_flag then
+            self.node.DebugFlag = 1
+        end
+        
+        self.node.Parent = nil
+        self.node = nil
+
+        if WeaponInstances[self.uuid] then
+            WeaponInstances[self.uuid] = nil
+        end
+    end,
+    
+    --动画事件回调
+    onAnimCallBack = function(self,action, state)
+        if state == Enum.StateMachineMessage.kOnStateExit then
+            if action == Const.CharactorActionState.POST_RELOAD then
+            elseif action == Const.CharactorActionState.LOAD then
+                self:loadEnd()
+            elseif action == Const.CharactorActionState.FIRE then
+                if self:_isBow() then
+                    self:_animReload() --弓箭直接在动画结束时上弹
+                elseif not self:checkCapacityValid() then
+                    self:_setWeaponState(Const.WeaponState.DECOCKING)
+                end
+            elseif action == Const.CharactorActionState.CHANGING
+            or action == Const.CharactorActionState.START then
+                if self.isLocalPlayer then
+                    if not self:checkCapacityValid() then
+                        self:_setWeaponState(Const.WeaponState.DECOCKING)
+                    elseif self:_isManualBolt() and not self.haveFinishedCOCKING_WeaponIsManualBolt then
+                        self.host:onLoad()
+                        self:_setWeaponState(Const.WeaponState.COCKING_PREPARE)
+                    else
+                        self:_setWeaponState(Const.WeaponState.READY)
+                    end
+                    self.host:updateAmmo(self:getCapacity(), self:getCapacityCarry())
+                end
+            end
+        elseif state == Enum.StateMachineMessage.kOnStateEnter then
+            if action == Const.CharactorActionState.CHANGING then
+                if self.config.special_action == Const.WeaponSpecialAttack.M_AIM then
+                    --开镜操作的结果
+                    if self.host.gun_mode == 2 then
+                        self:portArms(true)
+                        self:_portDone()
+                    else
+                        self:portArms(false)
+                    end
+                end
+            elseif action == Const.CharactorActionState.FIRE_POST_HOLD then
+                self:_fireBullet()
+            elseif action == Const.CharactorActionState.RELOAD then
+                self:_animReload()
+            end
+        end
+        
+        if self.bullet_node then
+            self.bullet_node.Visible = true
+        end
+    end,
+
+    onAnimClipEvent = function(self, key, value)
+        if key == 'RELOAD_TIME' then
+            if value == 'SKS' then
+                local number = 5
+                local reload_subtype = self:getReloadSubType()
+                if reload_subtype == 2 then
+                    number = 10
+                end
+                self:_animReloadAll(number)
+            else
+                self:_animReloadAll()
+            end
+        elseif key == 'HideBullet' then
+            if self.bullet_node then
+                self.bullet_node.Visible = false
+            end
+        elseif key == 'ShowBullet' then
+            if self.bullet_node then
+                self.bullet_node.Visible = true
+            end
+        elseif key == 'SPECIAL_TIME' then
+            --2226右键操作动画结束.播放特效
+            EffectManager:playWeaponEffect(EffectDefine.EnumEffectType.eWeaponPart, {weaponId = self.cfg_id, parent = self.Muzzle, charactorFps = self.handle.Parent.Parent, isRightKeyOption = true})
+            self:playEntityBulletEffect()
+        elseif key == 'fire_bullet' then
+            self:_fireBullet()
+        elseif key == 'run_script' then
+            local script = require(WeaponSystem:WaitForChild(value))
+            script:fire(self)
+        end
+    end,
+
+	--同步消息处理
+	DealWithWeaponStateSync = function(self,state,tbl)
+        if state == Proto.ServerMSGID.SERVER_WEAPON_AMMOEXTRA then
+            if self.isLocalPlayer then
+                local percent = tbl.perc
