@@ -1,0 +1,31 @@
+return {
+    [530001] = {id = 530001, name = "金币包 1", desc = "获得后获得500钞票", sell = 19, module = "", params = {}, rwds = {{id = 1, num = 500}}},
+    [530002] = {id = 530002, name = "金币包 2", desc = "获得后获得2,200钞票", sell = 79, module = "", params = {}, rwds = {{id = 1, num = 2200}}},
+    [530003] = {id = 530003, name = "金币包 3", desc = "获得后获得4,500钞票", sell = 159, module = "", params = {}, rwds = {{id = 1, num = 4500}}},
+    [530004] = {id = 530004, name = "金币包 4", desc = "获得后获得9,000钞票", sell = 299, module = "", params = {}, rwds = {{id = 1, num = 9000}}},
+    [530005] = {id = 530005, name = "金币包 5", desc = "获得后获得32,000钞票", sell = 999, module = "", params = {}, rwds = {{id = 1, num = 32000}}},
+    [530006] = {id = 530006, name = "金币包 6", desc = "获得后获得140,000钞票", sell = 3999, module = "", params = {}, rwds = {{id = 1, num = 140000}}},
+    [530007] = {id = 530007, name = "金币包 7", desc = "获得后获得300,000钞票", sell = 7999, module = "", params = {}, rwds = {{id = 1, num = 300000}}},
+    [530008] = {id = 530008, name = "高级鞋子", desc = "获得后获得高级鞋子-40速度", sell = 388, module = "Shop", params = {"EquipDevProductItem", 3010}, rwds = {{id = 3010, num = 1}}, storeType = "Shoe"},
+    [530009] = {id = 530009, name = "高级方块", desc = "获得后获得高级方块-30方块", sell = 388, module = "Shop", params = {"EquipDevProductItem", 1010}, rwds = {{id = 1010, num = 1}}, storeType = "Block"},
+    [530010] = {id = 530010, name = "高级RPG", desc = "获得后获得高级RPG", sell = 19, module = "Shop", params = {"EquipDevProductItem", 2006}, rwds = {{id = 2006, num = 1}}, storeType = "RPG"},
+    [530011] = {id = 530011, name = "蔚蓝RPG", desc = "获得后获得蔚蓝RPG", sell = 59, module = "Shop", params = {"EquipDevProductItem", 2007}, rwds = {{id = 2007, num = 1}}, storeType = "RPG"},
+    [530012] = {id = 530012, name = "粉红RPG", desc = "获得后获得粉红RPG", sell = 129, module = "Shop", params = {"EquipDevProductItem", 2008}, rwds = {{id = 2008, num = 1}}, storeType = "RPG"},
+    [530013] = {id = 530013, name = "导弹发射器", desc = "获得后获得导弹发射器", sell = 199, module = "Shop", params = {"EquipDevProductItem", 2009}, rwds = {{id = 2009, num = 1}}, storeType = "RPG"},
+    [530014] = {id = 530014, name = "黄金RPG", desc = "获得后获得黄金RPG", sell = 299, module = "Shop", params = {"EquipDevProductItem", 2010}, rwds = {{id = 2010, num = 1}}, storeType = "RPG"},
+    [530015] = {id = 530015, name = "彩虹RPG", desc = "获得后获得彩虹RPG", sell = 399, module = "Shop", params = {"EquipDevProductItem", 2011}, rwds = {{id = 2011, num = 1}}, storeType = "RPG"},
+    [530016] = {id = 530016, name = "爆炸冲锋枪", desc = "获得后获得爆炸冲锋枪", sell = 1299, module = "Shop", params = {"EquipDevProductItem", 2012}, rwds = {{id = 2012, num = 1}}, storeType = "RPG"},
+    [530017] = {id = 530017, name = "激光枪", desc = "获得后获得激光枪", sell = 2499, module = "Shop", params = {"EquipDevProductItem", 2013}, rwds = {{id = 2013, num = 1}}, storeType = "RPG"},
+    [530018] = {id = 530018, name = "转盘+1", desc = "购买后获得1次转盘机会", sell = 36, module = "", params = {}, rwds = {{id = 3, num = 1}}},
+    [530019] = {id = 530019, name = "转盘+5", desc = "购买后获得5次转盘机会", sell = 159, module = "", params = {}, rwds = {{id = 3, num = 5}}},
+    [530020] = {id = 530020, name = "转盘+10", desc = "购买后获得10次转盘机会", sell = 269, module = "", params = {}, rwds = {{id = 3, num = 10}}},
+
+    [530025] = {id = 530025, name = "团队无敌", desc = "购买后获得1个团队无敌道具", sell = 99, module = "", params = {}, rwds = {{id = 3, num = 10}}},
+    [530026] = {id = 530026, name = "团队移速增加", desc = "购买后获得1个团队移速增加道具", sell = 79, module = "", params = {}, rwds = {{id = 3, num = 10}}},
+    [530027] = {id = 530027, name = "团队RPG冷却缩短", desc = "购买后获得1个团队RPG冷却缩短道具", sell = 79, module = "", params = {}, rwds = {{id = 3, num = 10}}},
+    [530028] = {id = 530028, name = "团队快速复活", desc = "购买后获得1个团队快速复活道具", sell = 49, module = "", params = {}, rwds = {{id = 3, num = 10}}},
+
+
+    [530030] = {id = 530030, name = "复仇", desc = "购买后获得1个复仇机会", sell = 19, module = "", params = {}, rwds = {{id = 5, num = 1}}},
+    [530031] = {id = 530031, name = "复活币", desc = "购买后获得1个复活币", sell = 9, module = "", params = {}, rwds = {{id = 4, num = 1}}},
+}

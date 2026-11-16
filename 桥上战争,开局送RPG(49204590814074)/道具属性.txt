@@ -1,0 +1,129 @@
+local ReplicatedStorage = game:GetService("MainStorage")
+
+local Class = require(ReplicatedStorage.Scripts.Class)
+local CustomEnum = require(ReplicatedStorage.Scripts.CustomEnum)
+local Helper = require(ReplicatedStorage.Scripts.Util.Helper)
+local super = require(script.Parent)
+local consumableConfig = require(ReplicatedStorage.Scripts.cfg.tbconsumableconfig)
+
+local ConsumableConfig = Class(super)
+
+local TEAM_SPEED_ITEM_ID = 800106
+local TEAM_SPEED_BONUS = 10
+local EffectType = CustomEnum.TeamEffectType
+
+local EFFECT_TYPES_BY_ITEM_ID = {
+	[800103] = EffectType.Slow,
+	[800104] = EffectType.Blind,
+	[800105] = EffectType.Invincible,
+	[800106] = EffectType.Speed,
+	[800107] = EffectType.RPGCooldown,
+	[800108] = EffectType.FastRespawn,
+}
+
+local REQUIRED_FIELDS = {
+	[800103] = {"effectType", "effectDuration", "effectMagnitude"},
+	[800104] = {"effectType", "effectDuration"},
+	[800105] = {"effectType", "effectDuration"},
+	[800106] = {"effectType", "effectDuration", "effectSpeedBonus"},
+	[800107] = {"effectType", "effectDuration", "effectMagnitude"},
+	[800108] = {"effectType", "effectDuration", "effectMagnitude"},
+}
+
+local function logValidationError(itemId, field, reason)
+	shared.warn(
+		"ConsumableConfig validation failed. ItemId: ",
+		itemId,
+		" Field: ",
+		field,
+		" Reason: ",
+		reason
+	)
+end
+
+function ConsumableConfig:ctor()
+	self.itemMap = {}
+	self.effectTypeItemIds = {}
+	self.valid = false
+end
+
+function ConsumableConfig:Init()
+	local itemMap = {}
+	local effectTypeItemIds = {}
+	local valid = true
+
+	for itemId, config in pairs(consumableConfig) do
+		if not REQUIRED_FIELDS[itemId] then
+			logValidationError(itemId, "id", "UnexpectedItemId")
+			valid = false
+		elseif type(config) ~= "table" then
+			logValidationError(itemId, "config", "MustBeTable")
+			valid = false
+		elseif config.id ~= itemId then
+			logValidationError(itemId, "id", "ConfigIdMismatch")
+			valid = false
+		end
+	end
+
+	for itemId, fields in pairs(REQUIRED_FIELDS) do
+		local config = consumableConfig[itemId]
+		local itemValid = type(config) == "table" and config.id == itemId
+		if type(config) ~= "table" then
+			logValidationError(itemId, "config", "MissingConfig")
+			valid = false
+		else
+			for _, field in ipairs(fields) do
+				if field == "effectType" then
+					if config[field] ~= EFFECT_TYPES_BY_ITEM_ID[itemId] then
+						logValidationError(itemId, field, "UnexpectedTeamEffectType")
+						itemValid = false
+						valid = false
+					elseif effectTypeItemIds[config[field]] then
+						logValidationError(itemId, field, "DuplicateTeamEffectType")
+						itemValid = false
+						valid = false
+					end
+				elseif not Helper.IsPositiveNumber(config[field]) then
+					logValidationError(itemId, field, "MustBePositiveNumber")
+					itemValid = false
+					valid = false
+				end
+			end
+			if itemId == TEAM_SPEED_ITEM_ID then
+				if Helper.IsPositiveNumber(config.effectSpeedBonus)
+					and config.effectSpeedBonus ~= TEAM_SPEED_BONUS then
+					logValidationError(itemId, "effectSpeedBonus", "MustEqual10")
+					itemValid = false
+					valid = false
+				end
+				if config.effectMagnitude ~= nil then
+					logValidationError(itemId, "effectMagnitude", "LegacyFieldNotAllowed")
+					itemValid = false
+					valid = false
+				end
+			end
+		end
+		if itemValid then
+			itemMap[itemId] = config
+			effectTypeItemIds[config.effectType] = itemId
+		end
+	end
+
+	self.itemMap = itemMap
+	self.effectTypeItemIds = effectTypeItemIds
+	self.valid = valid
+end
+
+function ConsumableConfig:IsValid()
+	return self.valid
+end
+
+function ConsumableConfig:GetByItemId(itemId)
+	return self.itemMap[itemId]
+end
+
+function ConsumableConfig:GetItemIdByEffectType(effectType)
+	return self.effectTypeItemIds[effectType]
+end
+
+return ConsumableConfig

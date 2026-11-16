@@ -1,0 +1,282 @@
+---@diagnostic disable: undefined-field
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local IsStudio = RunService:GetAppPlatformName() == "PC"
+local IsPC = UserInputService.KeyboardEnabled == true
+local IsPhone = IsPC ~= true
+
+local CONST = {}
+CONST = {
+	-- 是否是编辑器
+	IsStudio       = IsStudio,
+	IsServer       = RunService:IsServer(),
+	IsClient       = RunService:IsClient(),
+	IsPC           = IsPC,
+	IsPhone		   = IsPhone,
+
+	CollectVersion = 1,
+	
+
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	--|-----------------------------------------|
+	--| 	玩家数据禁止数字key和字符串key混用	    |
+	--| 	禁止不连续数字key				        |
+	--| 	禁止CFrame,Vector3					|
+	--|     数据库不支持			            	|
+	--|-----------------------------------------|
+	-- Buff 模块嵌入到Entity内部创建,这里不在添加
+	ServerPlayerModule = {},
+	ClienPlayerModule = {},
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+	---- 模块保存数据须知!必看!--!!!!!!!!!!!!!!!!!!!!
+
+	-- Buff模块嵌入Entity内部创建,单独计算属性
+	PropModule = {
+		
+	},
+	------------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------------
+
+	------------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------------
+	ServerFPS                = 10,                   -- 服务端FPS刷新次数
+	CreatureDefaultWalkSpeed = 8,                    -- 生物行走速度
+	ScreenTopBarHeight       = IsPC and 58 or 0,     -- PC顶部坐标高度
+	PhoneTopBarHeight        = IsPhone and 58 or 0,  -- 手机顶部坐标高度
+	------------------------------------------------------------------------------------------
+	------------------------------------------------------------------------------------------
+	-- 调试控制
+	DebugDefine = {
+		DebugNetMessage = false, -- IsStudio and true or false,       -- 是否调试网络消息
+		DebugSkill = false,      -- IsStudio and true or false,       -- 是否调试技能
+		DebugRaycast = false,    -- IsStudio and true or false,       -- 是否调试射线
+	},
+
+    NormalMaxWeight   = 10000,             -- 随机概率总和
+    GameGroupId       = game.CreatorId,    -- 群组Id
+
+    -- 货币Id
+	GoldItemId        = 1,                 -- 普通货币Id
+	GoldItemMaxNum    = 10000000000,       -- 金币数量上限（100亿）
+	BadgeItemId        = 2,                 -- 警长徽章Id
+	RespawnItemId     = 4,                 -- 复活币Id
+	RevengeItemId     = 5,            -- 复仇道具Id
+
+	DevId = {
+		DoubleMove = 530004,
+		PaidShoe = 530008,
+		PaidBlock = 530009,
+		Money1 = 530001,
+		Money2 = 530002,
+		Money3 = 530003,
+		Money4 = 530004,
+		Money5 = 530005,
+		Money6 = 530006,
+		Money7 = 530007,
+		WheelOne = 530018,
+		WheelFive = 530019,
+		WheelTen = 530020,
+		Invincible = 530025,
+		Speed = 530026,
+		RPGCooldown = 530027,
+		FastRespawn = 530028,
+
+		Revenge = 530030,
+		Respawn = 530031,
+
+		Potion1 = 999999,
+	},
+
+	DevSuccLogStr               = "DevProduct_Succ_%s",
+	DevReqLogStr                = "DevProduct_Req_%s",
+	DevProductSuccRookieLogStr  = "DevProductSucc_Rookie_%s",
+	DevProductSuccNRookieLogStr = "DevProductSucc_NRookie_%s",
+
+	--玩家聊天
+	PlayerChat = {
+		ClientSaveChatNum          = 100,                   -- 聊天存储条数
+		ClientShowTimeInterval     = 60,                    -- 聊天时间条显示间隔
+		ChatServerSaveNumTab       = { 10, 10, 0},          -- 服务器保存聊天信息条数{room ,world}
+		ChatClientOnceMaxSendNum   = 140,                   -- 聊天信息最长字符数
+		ChatClientSendTimeInterval = { 1000, 2000, 1000},   -- 聊天发送时间间隔{room, world}毫秒
+	},
+
+	-- VIP时间
+    VipTime                     = 360*24*60*60,                   -- VIP持续时间
+    VipRate                     = 0.2,                            -- Vip奖励倍率
+    VipDailyRewards             = {{id = 5, num = 3}},            -- Vip每日奖励
+    
+	-- 是否启用耐久度损耗
+	DurabilityEnable            = true,                          -- 耐久度损耗是否启用
+
+	-- 背包限制启用
+	BackpackPutLimit = {
+		-- 是否启用格子限制
+		EnableCount     = false,
+		EnableWeight    = false,
+		-- 背包,保险箱,仓库等是否启用格子限制
+		EnableLimitGrid = IsStudio,
+	},
+
+	-- 赛季
+	Lv1PassMaxReceiveLv         = 17,                            -- 初级vip通行证最高领取到的等级
+	PassMaxLevel                = 17,                            -- 通行证最大等级
+	SeasonRankLevelVal          = 1e14,                  		 -- 等级扩大
+	SeasonRankExpVal            = 1e10,                          -- 等级扩大
+	SeasonStartTime             = 1768233600,                    -- 第一赛季开始时间（建议某天零点）
+	SeasonDuration              = 60*60*24*90,                   -- 每一赛季的持续时间(建议整天数60*60*24)
+	SeaonDayExpLimit            = 3000,		                     -- 每日赛季经验上限
+	-- AFK
+	AFKMaxSecond                = 15 * 60,                       -- 挂机最大time
+
+	--头像
+	RobloxHeadThumb             = "rbxthumb://type=AvatarHeadShot&id=%d&w=420&h=420",
+	RobloxHeadThumb_48          = "rbxthumb://type=AvatarHeadShot&id=%d&w=48&h=48",
+	RobloxBustThumb             = "rbxthumb://type=AvatarBust&id=%d&w=420&h=420",
+	
+	
+	MobilePlatformImg = "rbxassetid://119850175199930", --  <-手机
+	PCPlatformImg = "rbxassetid://123571325263725", --  <-电脑
+
+	PlatformType = {	-- 平台类型
+		Mobile = "Mobile",
+		PC = "PC",
+	},
+	
+	EMPTY_TAB = {},
+
+	-- 八方
+	AllDirections = {
+		-- 0, math.rad(45), math.rad(-45), math.rad(90), math.rad(-90), math.rad(135), math.rad(-135), math.rad(180)
+		0, 45, -45, 90, -90, 135, -135, 180
+	},
+
+	DefaultViewRange = math.cos(math.rad(70)),
+
+	SYSTEM_ID = -9999,
+	SYSTEM_TEAM = 9999,
+
+	-- 普通段位最大等级
+	NormalRankMaxLv = 17,
+
+	FallDamage = {
+		-- 高处跌落伤害
+		{min=0,max=18,dmg=0},
+		{min=18,max=24,dmg=5},
+		{min=24,max=36,dmg=15},
+		{min=36,max=60,dmg=50},
+		{min=60,max=5994,dmg=150},
+	},
+
+	MatchExp = {
+		survivalExpStartMin = 5,	-- 几分钟后开始有经验
+		survivalEveryMinExp = 20,	-- 每分钟经验
+		matchMaxExp = 1800, 		-- 单局最高经验
+	},
+	
+
+    -- ErrorCode = {
+	-- 	MemberNumTooMany = 1,	-- 当前队伍中人数过多
+	-- 	MemberInSession = 2,	-- 玩家在比赛中
+	-- 	MemberInMatchGroup = 3,	-- 玩家在匹配中
+    -- }
+}
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+setmetatable(CONST.EMPTY_TAB, {__newindex = function ()
+	
+end})
+
+local DBConst = require(script.DBConst)
+CONST.DBConst = DBConst
+
+local BagConst = require(script.BagConst)
+CONST.BagConst = BagConst
+
+local ColorConst = require(script.ColorConst)
+CONST.ColorConst = ColorConst
+
+local PanelConst = require(script.PanelConst)
+CONST.PanelConst = PanelConst
+
+local ServerConst = require(script.ServerConst)
+CONST.ServerConst = ServerConst
+
+local ContextConst = require(script.ContextConst)
+CONST.ContextConst = ContextConst
+
+local ServerPlaceId = require(script.ServerPlaceIdConst)
+CONST.ServerPlaceId = ServerPlaceId
+
+local PlayerConst = require(script.PlayerConst)
+CONST.PlayerConst = PlayerConst
+
+local RoundConst = require(script.RoundConst)
+CONST.RoundConst = RoundConst
+
+local StatisticType = require(script.StatisticTypeConst)
+CONST.StatisticType = StatisticType
+
+local ErrorCode = require(script.ErrorCode)
+CONST.ErrorCode = ErrorCode
+
+local HandBlockStackVisualConst = require(script.HandBlockStackVisualConst)
+CONST.HandBlockStackVisual = HandBlockStackVisualConst
+
+-- 属性定义
+local StringConst = require(script.StringConst)
+CONST.AttributeConst = StringConst.AttributeConst
+CONST.CollisionGroupConst = StringConst.CollisionGroupConst
+CONST.EventKeyConst = StringConst.EventKeyConst
+CONST.ChildNameConst = StringConst.ChildNameConst
+CONST.TagConst = StringConst.TagConst
+
+-- 模块定义
+local PlayerModuleConst = require(script.PlayerModuleConst)
+CONST.PlayerModuleConst = PlayerModuleConst
+CONST.ClienPlayerModule = PlayerModuleConst.ClienPlayerModule
+CONST.ServerPlayerModule = PlayerModuleConst.ServerPlayerModule
+--------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
+
+-- 设置运行的场景
+CONST.ServerPlaceId:Init()
+
+-- -- 初始化设备
+-- task.defer(function()
+-- 	if CONST.IsClient then
+-- 		for i = 1 , 20 , 1 do
+-- 			task.wait()
+-- 			if CONST.IsStudio then
+-- 				CONST.IsPC = UserInputService.TouchEnabled ~= true
+-- 			else
+-- 				CONST.IsPC = UserInputService.KeyboardEnabled == true
+-- 			end
+-- 			CONST.IsPhone = CONST.IsPC ~= true
+-- 		end
+-- 	else
+-- 		CONST.IsPC = true
+-- 		CONST.IsPhone = CONST.IsPC ~= true
+-- 	end
+-- 	-- PC顶部坐标高度
+-- 	CONST.ScreenTopBarHeight = CONST.IsPC and 58 or 0
+-- 	CONST.PhoneTopBarHeight = CONST.IsPhone and 58 or 0
+-- 	shared.print("当前设置" , "手机" , CONST.IsPhone , "触摸" , UserInputService.TouchEnabled , "键盘" , UserInputService.KeyboardEnabled , "鼠标" , UserInputService.MouseEnabled)
+-- end)
+
+function CONST.getPlatformIcon(platform)
+	if platform == "PC" then
+		return CONST.PCPlatformImg
+	elseif platform == "Mobile" then
+		return CONST.MobilePlatformImg
+	end
+	return ""
+end
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+
+return CONST
