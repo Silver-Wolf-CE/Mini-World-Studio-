@@ -1,0 +1,197 @@
+local PlayerConsts
+
+PlayerConsts = {
+	DeathHeight      = -20000,
+
+	NormalHP         = 100,         -- 所有玩家默认血量
+	NormalSP         = 100,         -- 所有玩家默认体力
+	TeamHelpNormalHp = 20,          -- 被抬起后恢复血量
+	-- 每次倒地扣除的血量
+	FallDownTakeDmg  = {
+		[1] = 3,
+		[2] = 4.5,
+		[3] = 6,
+	},
+	CallForHelpTime 	  = 5,		-- 玩家倒地呼救时间
+	GiveUpTime 		      = 1,		-- 玩家放弃治疗倒地时间
+
+	FallDownNumLimit      = 3,      -- 允许倒地次数为3
+
+	SoulHP                = 100,    -- 灵魂状态血量
+	SoulTakeDmg           = 1,      -- 灵魂后每秒消耗血量
+	SoulNumLimit          = 1,      -- 允许变成灵魂次数为1
+
+	NormalWalkSpeed       = 400,     -- 默认移动速度
+	EquipmentMoveSpeedScale = 25, -- Lv1 配置速度16对应项目现有基础移速400
+	Climb = {
+		SpeedRate        = 0.7,  -- 上下攀爬速度相对当前有效移速
+		SideSpeedRate    = 0.5,  -- 左右攀爬速度相对当前有效移速
+		StickStrength    = 8,    -- 距离误差转换为吸附速度的倍率
+		MaxStickSpeedRate = 0.25, -- 最大吸附速度相对当前有效移速
+		LostGrace        = 0.1,  -- 短暂丢失检测时继续接管的时间
+		EnterThreshold   = 0.5,  -- 移动输入朝向 Truss 的最小点积
+		TargetDistance   = 50,   -- 默认角色中心到 Truss 表面的距离（厘米）
+		PlayerRadius     = 50,   -- 射线起点到角色身体边缘的近似距离（厘米）
+		ClimbReach       = 20,   -- 身体边缘之外允许触发攀爬的距离（厘米）
+		SideRayOffset    = 35,   -- 攀爬保持时左右辅助射线相对中心的偏移（厘米）
+	},
+	RunSpeed              = 30,     -- 奔跑速度
+	UseWalkSpeed          = 8,      -- 使用物品时的移动速度
+	FallDownWalkSpeed     = 4,      -- 倒地移动速度
+
+	RunSpeedRate          = 1.5,    -- 奔跑时移动速度倍率
+	AimSpeedRate          = 0.5,    -- 瞄准时移动速度倍率
+	FireSpeedRate         = 0.7,    -- 开火时移动速度倍率
+	SquatSpeedRate        = 0.5,    -- 蹲下时移动速度倍率
+	CrawlSpeedRate        = 0.18,   -- 趴下时移动速度倍率
+	DownedSpeedRate       = 0.18,   -- 倒地时移动速度倍率
+	WeightLimitSpeedRate  = 0.20,   -- 超重时移动速度倍率
+	WeightOverSpeedRate   = 0.50,   -- 超重时移动速度倍率
+	
+	RunCameraFOV          = 20,     -- 奔跑相机视野效果
+	PlayerRescueTime      = 10,     -- 救助玩家时间
+	PlayerRescueMaxFaster = 0.5,    -- 救助玩家最大加速
+
+	SquatCameraOffset     = Vector3.new(0, -1.5, 0),
+	CrawlCameraOffset     = Vector3.new(0, -3, 0),
+	DownedCameraOffset    = Vector3.new(-0.5, -3, 0.2),
+
+	SensitivityMin        = 0.1,
+	SensitivityMax        = 3,
+
+	-- 玩家默认动画
+	Animations = { -- 一些特殊的动作
+		dead = "rbxassetid://78509654157287",	-- 死亡
+		cheer = "http://www.roblox.com/asset/?id=507770677", -- 庆祝
+		idle = "http://www.roblox.com/asset/?id=507766388",
+		walk = "http://www.roblox.com/asset/?id=913402848",
+		run = "http://www.roblox.com/asset/?id=913376220",
+		jump = "http://www.roblox.com/asset/?id=507765000",
+		fall = "http://www.roblox.com/asset/?id=507767968",
+		jumping = "rbxassetid://95708113225622"
+
+		--fallDown = "rbxassetid://96971156018132",
+		--fallDownIdle = "rbxassetid://123936552305856",
+		--fallDownWalk = "rbxassetid://95657321337606"
+	},
+
+	-- 枪械动画
+	BlasterCharacterAnimations = {
+		blasterIdle = "rbxassetid://17747384020",
+		reload = "rbxassetid://17747385966",
+		shoot = "rbxassetid://17747381445",
+	},
+
+	SquatAnimation = {	-- 蹲下动画
+		idle = "rbxassetid://75314648718175",
+		walk = "rbxassetid://124041879358420",
+		blasterIdle = "",
+	},
+
+	CrawlAnimation = {	-- 匍匐动画
+		idle = "rbxassetid://110850351993444",
+		walk = "rbxassetid://116488826912567",
+		blasterIdle = "",
+	},
+
+	FallDownAnimation = {	-- 倒地动画
+		idle = "rbxassetid://81661189045907",
+		walk = "rbxassetid://103217292828870",
+		blasterIdle = "",
+	},
+
+	BaseAnimation = {	-- 基础动画
+		idle = "http://www.roblox.com/asset/?id=507766388",
+		walk = "http://www.roblox.com/asset/?id=913402848",
+		run = "http://www.roblox.com/asset/?id=913376220",
+		jump = "http://www.roblox.com/asset/?id=507765000",
+		fall = "http://www.roblox.com/asset/?id=507767968",
+		dead = "rbxassetid://78509654157287",	-- 死亡
+		cheer = "http://www.roblox.com/asset/?id=507770677", -- 庆祝
+		fallDown = "rbxassetid://96971156018132", -- 倒地
+		blasterIdle = "rbxassetid://17747384020",
+		jumping = "rbxassetid://95708113225622",	-- 跳伞动作
+	},
+
+	-- R15零件
+	CharacterBodyPart = {
+		"Head",
+		"LeftFoot",
+		"LeftHand",
+		"LeftLowerArm",
+		"LeftLowerLeg",
+		"LeftUpperArm",
+		"LeftUpperLeg",
+		"LowerTorso",
+		"RightFoot",
+		"RightHand",
+		"RightLowerArm",
+		"RightLowerLeg",
+		"RightUpperArm",
+		"RightUpperLeg",
+		"UpperTorso",
+	},
+
+	WeightSpeedInterval = {	-- 负重减速 最小-最大 区间
+		min = 0.1, max = 0.2	
+	},
+
+	randomPlayerIds = {
+		4899453649,
+		7230954660,
+		4831840568,
+		5759647545,
+		7183710692,
+		5275790844,
+		5184560607,
+		8075701537,
+		8079256490
+	},
+
+	RobloxHeadThumb = "rbxthumb://type=AvatarHeadShot&id=%d&w=420&h=420",
+	
+	MoveDirKey = {
+		Left = "Left",
+		Right = "Right",
+		Forward = "Forward",
+		Back = "Back",
+	},
+	
+	SpConsumeReason = {
+		Run = 1,
+		Jump = 2,
+	},
+
+	SpRecoverCD = 3,	-- 在不消耗体力多久后开始恢复体力
+	BaseSpRecover = 5,	-- 基础每秒恢复体力
+	ExhaustionRecover = 0.2,	-- 力竭后体力恢复%多少才可以奔跑
+	RunResetCD = 2,	-- 两次奔跑间隔多久之后 下次奔跑直接扣除体力
+	RunConsumeRecover = 2,	-- 奔跑消耗体力
+	JumpConsumeRecover = 2,	-- 跳跃消耗体力
+	
+	FirstSpChange = 0.5,	-- 体力条变化
+	SecondSpChange = 0.1,	-- 体力条变化
+}
+
+-- 获取一个Id
+function PlayerConsts.getRandomPlayerId()
+	return PlayerConsts.randomPlayerIds[math.random(1, #PlayerConsts.randomPlayerIds)]
+end
+
+-- 获取头像[机器人随机,随后固定]
+local gIconCacheMap = {}
+function PlayerConsts.getHeadThumbImg(playerId , fmt)
+	fmt = fmt or PlayerConsts.RobloxHeadThumb
+	if playerId > 5000000000000 then
+		local sKey = string.format("%d-%s" , playerId , fmt)
+		if not gIconCacheMap[sKey] then
+			local sImg = string.format(fmt, PlayerConsts.getRandomPlayerId())
+			gIconCacheMap[sKey] = sImg
+		end
+		return gIconCacheMap[sKey]
+	else
+		return string.format(fmt , playerId)
+	end
+end
+
+return PlayerConsts

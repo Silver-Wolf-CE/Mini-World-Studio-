@@ -1,0 +1,226 @@
+local CustomEnum = {
+	TeamEffectType = {
+		Slow = "Slow",
+		Blind = "Blind",
+		Invincible = "Invincible",
+		Speed = "Speed",
+		RPGCooldown = "RPGCooldown",
+		FastRespawn = "FastRespawn",
+	},
+
+	RPGAttackMode = {
+		Normal = "Normal",
+		Scatter = "Scatter",
+		Double = "Double",
+		Freeze = "Freeze",
+		Delayed = "Delayed",
+	},
+
+	OnlineRewardState = {
+		Locked = "Locked",
+		Claimable = "Claimable",
+		Claimed = "Claimed",
+	},
+
+	-- 属性类型(请修改AttrConfig.lua对应配置)
+
+	-- 道具改变类型
+	ItemUpdateType = {
+		add = 1,    -- 新增
+		upd = 2,    -- 更新
+		del = 3,    -- 删除
+	},
+
+	-- 掉落物品类型   
+	DropItemType = {
+		box  = 1,    -- 盒子
+		item = 2,    -- 道具
+	},
+
+	-- 实体类型
+	EntityType = {
+		none    = 0,
+		player  = 1,
+		monster = 2,
+	},
+
+	-- 怪物类型
+	MonsterType = {
+		normal = 1,
+		elite  = 2,
+		boss   = 3,
+	},
+
+	-- 实体的权限
+	BuffStatusPermission = {
+		move   = 1,        -- 是否可以移动
+		attack = 2,        -- 是否可以攻击
+		aihunt = 3,        -- 是否可以被AI(怪物)追击
+		hurt   = 4,        -- 是否可以受伤(无敌)
+		reborn = 5,        -- 是否可以复活
+	},
+
+
+	-- 死亡原因
+	DieReason = {
+		beKilled = 1,   -- 被击杀  
+		dropMap  = 2,    -- 掉出地图
+	},
+
+	-- 通用运营日志。编号与 CatchAndTame 保持一致，便于沿用历史统计口径。
+	SystemLogEnum = {
+		None                  = 0,
+		day_first_login       = 1,
+		login                 = 2,
+		new_player            = 3,
+		online_0              = 4,
+		online_5              = 5,
+		online_10             = 6,
+		online_15             = 7,
+		online_20             = 8,
+		online_25             = 9,
+		online_30             = 10,
+		online_30_plus        = 11,
+		rookie_online_0       = 12,
+		rookie_online_5       = 13,
+		rookie_online_10      = 14,
+		rookie_online_15      = 15,
+		rookie_online_20      = 16,
+		rookie_online_25      = 17,
+		rookie_online_30      = 18,
+		rookie_online_30_plus = 19,
+		logout                = 20,
+		total_time            = 21,
+		rookie_total_time     = 22,
+		new_player_login      = 25,
+		player_enter          = 83,
+		guideDone             = 84,
+		inviteFriend          = 85,
+		inviteSucc            = 86,
+		buyDevPlayerNum       = 87,
+		playerAdd             = 88,
+		playerLoaded          = 89,
+	},
+
+	----------------------------
+	--聊天
+	--聊天信息类型
+	PlayerChatInfoType = {
+		room  = 1,       -- 房间信息
+		world = 2,       -- 跨服务器信息
+		team  = 3,       -- 队伍
+	},
+
+	--聊天内容类型
+	PlayerChatMsgInfoType = {
+		_text = 1,          --文字信息
+	},
+
+	-- 全服结构化消息类型
+	GlobalMessageType = {
+		PLAYER_CHAT = 1,
+	},
+
+	-----------------------------
+	-----------------------------
+
+	-----------------------------
+	--shop抽奖
+	ShopPrizeType = {
+		shopTab1     = 1,
+		shopTab2     = 2,
+		shopTab3     = 3,
+		collectPrzie = 4,
+	},
+	--end
+	-----------------------------
+
+
+	-----------------------------
+	--红点控制
+	ReddotControl = {
+		show   = 1,
+		hide   = 2,
+		lock   = 3, 
+		unlock = 4,
+	},
+	--end
+	-----------------------------
+
+	-- 挂机类型
+	AFKType = {
+		Train = 1,  -- 训练
+	},
+
+	RankPageType = {
+		Week = "Week",
+		Total = "Total",
+	},
+
+	RankType = {
+		Power         = 1,       -- 战力榜单
+		Online        = 2,       -- 在线计时
+		KillCount     = 3,       -- 击杀计数
+		TowerWave     = 4,       -- 爬塔榜单
+		Robux         = 5,       -- 付费榜单
+		WBDmg         = 6,       -- 世界BOSS伤害
+		Rebirth       = 7,       -- 重生次数
+		Season        = 8,       -- 赛季排行
+		Value         = 9,       -- 皮肤价值
+		WinStake      = 10,      -- 赢取筹码数量
+		WinStreak     = 11,      -- 胜利连胜
+		Cash          = 12,      -- 现金
+		EquipmentCash = 13,      -- 武器现金价值
+		Level 		  = 14,      -- 人物等级
+		PlaceBlock   = 15,      -- 放置方块次数
+		Win          = 16,      -- 胜利次数
+		Kill         = 17,      -- 击杀玩家次数
+		WeekPlaceBlock = 18,    -- 每周放置方块次数
+		WeekWin        = 19,    -- 每周胜利次数
+		WeekKill       = 20,    -- 每周击杀玩家次数
+	},
+
+
+	------------------------------------------
+	------------------------------------------
+	-- 交易
+	TradeState = {
+		none    = 0,       -- 等待
+		lock    = 1,       -- 锁定
+		confirm = 2,       -- 确认
+	},
+
+	TradeReason = {
+		none            = 0,    -- 成功
+		itemNotEnough   = 1001, -- 道具不足
+		playerOffline   = 1002, -- 玩家离线
+		bagNotEnough    = 1003, -- 背包容量不足
+		playerCancel    = 1004, -- 玩家取消
+		unknown         = 1999, -- 未知错误
+	},
+
+	------------------------------------------
+	------------------------------------------
+}
+
+-- local CollectionService = game:GetService("CollectionService")
+
+-- for i, v in ipairs(CollectionService:GetTagged("Enums")) do
+-- 	if v:IsA("ModuleScript") then
+-- 		CustomEnum[v.Name] = require(v)
+-- 	end
+-- end
+
+-- CollectionService:GetInstanceAddedSignal("Enums"):Connect(function(instance:Instance)
+-- 	if instance:IsA("ModuleScript") then
+-- 		CustomEnum[instance.Name] = require(instance)
+-- 	end
+-- end)
+
+for i, v in ipairs(script.Children) do
+	for kk, vv in pairs(require(v)) do
+		CustomEnum[kk] = vv
+	end
+end
+
+return CustomEnum

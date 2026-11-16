@@ -1,0 +1,415 @@
+local RunService=game:GetService("RunService")
+local WorkSpace=game:GetService("WorkSpace")
+local WorldService=game:GetService("WorldService")
+local MainStorage=game:GetService("MainStorage")
+local players=game:GetService("Players")
+local thisplayer=players.LocalPlayer
+local Character=thisplayer.Character
+local Comm=require(MainStorage.Commom)
+local ClientEvent=MainStorage:WaitForChild("CustomNotify")
+local RemoteEvent=MainStorage:WaitForChild("RemoteEvent")
+local RemoteFunction=MainStorage:WaitForChild("RemoteFunction")
+
+function GunAction:SetFireMode()
+	  if GameControl.curWeapon<4 then
+	      local curFireMode=self.firemode
+	      local Gunid=MyWeapon[GameControl.curWeapon].Itemid
+		  local ModePool=WeaponData[Gunid].firemode
+		  if #ModePool==1 then return end
+		  for i,a in ipairs(ModePool) do
+		        if curFireMode==a then
+				     if i==#ModePool then
+					       self.firemode=ModePool[1]
+					 else
+					       self.firemode=ModePool[i+1]
+					 end
+					 break
+				end
+		  end
+		  GameControl:UpdateFireMode()
+	  end
+end
+
+----开火
+function GunAction:GunFire()
+	if GameControl.curWeapon==4 then
+			self:KnifeAttack()
+			return
+    elseif GameControl.curWeapon==6 then
+	        self:GrenadeRdy()
+			return
+	end
+	local Gunid=MyWeapon[GameControl.curWeapon].Itemid
+	---射击间隔（秒）
+	local firedelay=60/WeaponData[Gunid].firespeed*1.1-----射速（RPM）延时：秒
+	local Bulletid
+	if Gunid==2051 and (self.AnimClipName=="Reload1_1" or self.AnimClipName=="Reload1_2" or self.AnimClipName=="Reload1_3" or self.AnimClipName=="Reload4") then
+	      self:PlayAnim("StopReload")
+	      return
+	end
+	local function FireBullet()
+	      local i=GameControl.curWeapon
+		  if MyMapid==0 then
+		          local curAmmonum=GunAction.TestAmmo[i]
+				  if curAmmonum<=0 then
+				         return
+				  else
+				         GunAction.TestAmmo[i]=GunAction.TestAmmo[i]-1
+				         local Gunid=MyWeapon[i].Itemid
+						 local bulletId
+						 for k=351,400 do
+						        if ItemData[k] and ItemData[k].t==ItemData[Gunid].t then
+								       bulletId=k
+								       break
+								end
+						 end
+						 GameControl:UpDate_Ammo(i)
+				         return bulletId
+				  end
+		  else
+				  local Ammo=MyWeapon[GameControl.curWeapon].ammo
+				  if next(Ammo) then
+						Bulletid=MyWeapon[i].ammo[1].id
+						MyWeapon[i].ammo[1].num=math.max(0,MyWeapon[i].ammo[1].num-1)
+						if MyWeapon[i].ammo[1].num==0 then
+							 table.remove(MyWeapon[i].ammo,1)
+						end
+						GameControl:UpDate_Ammo(i)
+						return Bulletid
+				  else
+						SoundControl:LocalWeaponDryFire(MyWeapon[GameControl.curWeapon].Itemid)
+						return
+				  end
+		   end
+	end
+	
+	local function checkfire()
+	      if Character:GetAttribute("LiveState")~="Alive" then return 2 end
+	      ---获取当前时间，毫秒级别
+	      local TimeMS=RunService:CurrentSteadyTimeStampMS ()
+	      if self.firetime and TimeMS<self.firetime then return 0 end --射击间隔
+		  if self.firelock==true then return 2 end    --禁止射击
+		  if self.AnimClipName=="Reload1" or self.AnimClipName=="Reload2" then return 4 end  ---换弹中
+		  local Bulletid=FireBullet()
+		  if not Bulletid then return 3 end --子弹消耗失败
+		   --射击
+		   if self.firetime then
+		     self.firetimeRest=math.floor(((TimeMS-self.firetime)%(firedelay*1000)))
+		   else
+		     self.firetimeRest=0
+		   end
+		  self.firetime=TimeMS+firedelay*1000-self.firetimeRest
+		  ClientEvent:Fire({EventName="ActiveFire",Bulletid=Bulletid,st=RunService:CurrentSteadyTimeStampMS ()})
+		  return 1  ---成功射击
+	end
+	
+	local function fireError(result)
+	      if result==3 then
+		        --ShowMsg("无弹药")
+				GunAction:GunReload()
+		  end
+	end
+	
+	if self.firemode==0 then
+	     fireError(checkfire())
+	elseif self.firemode==1 then
+	    local i=0
+		while i<3 do
+		     local result=checkfire()
+		     if result==1 then
+			     i=i+1
+		     else
+		         	if result~=0 then
+				       fireError(result)
+					   break
+					end
+			 end
+			 wait(0.01)
+		end
+	elseif self.firemode==2 then
+	    self.autofire=true
+	    while self.autofire do
+		    local result=checkfire()
+		    if result~=1 and result~=0 then
+			     fireError(result)
+			     break
+			end
+			wait(0.01)
+		end
+		self.autofire=false
+		self.firetime=nil
+	end
+end
+
+function GunAction:GetAimStartPosAndDir()
+	  local Camera=CameraControl:CurrentCamera()
+	  local GunHand=Camera.GunHand
+	  
+	  local StartPos,Dir
+		  StartPos=Camera.Position
+		  if self.AimMode==0 then
+		         ---腰射
+				 local CameraEuler=Camera.Euler
+				 local defaultdiff=1.5
+				 local hip=0    ---腰射参数
+				 defaultdiff=defaultdiff*(1-math.min(1,hip/100))
+				 local diffx=math.random(-defaultdiff*100,defaultdiff*100)/100
+			     local diffy=math.random(-defaultdiff*100,defaultdiff*100)/100
+			     local diff=Vector3.New(diffx,diffy,0)
+	             CameraEuler=CameraEuler+diff
+				 Dir=Comm:eulerToUnitVector(CameraEuler.X, CameraEuler.Y, CameraEuler.Z)
+		  else
+		         --瞄准射击
+				 local AimMode=self.AimModePool[1][1]
+				 if AimMode==1 then
+						Dir=Comm:Normalize(GunHand.Body.Children[1].sight.Position-StartPos)
+			     elseif AimMode==2 then
+				        local sightNode
+						if GunHand.Bolt_Part and GunHand.Bolt_Part.Optic then    -----M249特殊处理
+						        if GunHand.Bolt_Part.Optic.Lens.Visible==true then
+									  sightNode=GunHand.Bolt_Part.Optic.Lens.sight
+								elseif GunHand.Bolt_Part.Optic.LensF.Visible==true then
+									  sightNode=GunHand.Bolt_Part.Optic.LensF.sight
+								end
+						else
+								if GunHand.Body.Children[1].Point.Optic.Model.Lens.Visible==true then
+									  sightNode=GunHand.Body.Children[1].Point.Optic.Model.Lens.sight
+								elseif GunHand.Body.Children[1].Point.Optic.Model.LensF.Visible==true then
+									  sightNode=GunHand.Body.Children[1].Point.Optic.Model.LensF.sight
+								end
+						end
+				        Dir=Comm:Normalize(sightNode.Position-StartPos)
+			     elseif AimMode==3 then
+				        if GunHand.Bolt_Part and GunHand.Bolt_Part.Optic then  -----M249特殊处理
+						   Dir=Comm:Normalize(GunHand.Bolt_Part.Optic.LensF1.sight.Position-StartPos)
+						else
+				           Dir=Comm:Normalize(GunHand.Body.Children[1].Point.Optic.Model.LensF1.sight.Position-StartPos)
+						end
+			     elseif AimMode==4 then
+				        if GunHand.Bolt_Part and GunHand.Bolt_Part.Optic_Side then   -----M249特殊处理
+						   Dir=Comm:Normalize(GunHand.Bolt_Part.Optic_Side.Lens.sight.Position-StartPos)
+						else
+				           Dir=Comm:Normalize(GunHand.Body.Children[1].Point.Optic_Side.Model.Lens.sight.Position-StartPos)
+						end
+				 elseif AimMode==5 then
+				        Dir=Comm:eulerToUnitVector(Camera.Euler.X, Camera.Euler.Y, Camera.Euler.Z)
+				 end
+		  end
+		  return StartPos,Dir
+end
+
+function GunAction:Fire(Bulletid)
+	      local Gunid=MyWeapon[GameControl.curWeapon].Itemid
+		  if self.AnimClipName=="run" then
+			  GunAction:StopRun()
+		  end
+		  self:PlayAnim("Fire")
+		  RemoteEvent:FireServer({EventName="FireAttack",Guni=GameControl.curWeapon})
+		  SoundControl:LocalWeaponFire(Gunid)
+		  GunAction:MuzzleFlashPlay()
+		  
+		  GunAction:Recoil()
+		  local Camera=CameraControl:CurrentCamera()
+		  local GunHand=Camera.GunHand
+		  local StartPos,Dir=self:GetAimStartPosAndDir()
+		  
+		 local num=1
+		  if Bulletid>=351 and Bulletid<=360 then
+				num=8
+		  end
+		  ---霰弹枪
+		  local function randomDir(base, maxAngleDeg)
+				local refVec = Vector3.New(0, 1, 0)
+				local axis1 = Vector3.Cross(base,refVec)
+				if axis1.Length < 1e-5 then
+					refVec = Vector3.New(1, 0, 0)
+					axis1 = Vector3.Cross(base,refVec)
+				end
+				axis1 = Vector3.Normalize(axis1)
+				local axis2 = Vector3.Cross(base,axis1)
+				axis2=Vector3.Normalize(axis2)
+				local maxAngleRad = math.rad(maxAngleDeg)
+				local radius = math.tan(maxAngleRad)
+
+				local randomAngle = math.random() * 2 * math.pi
+				local randomRadius = math.sqrt(math.random()) * radius -- sqrt确保均匀分布
+				local offset = axis1 * (randomRadius * math.cos(randomAngle))+ axis2 * (randomRadius * math.sin(randomAngle))
+				local finalDir = base + offset
+				return Vector3.Normalize(finalDir)
+		  end
+
+
+		  local fireDir=Dir
+		  local seed=math.random(1,10000)
+		  for i=1,num do
+				 if num>1 then
+						 fireDir=randomDir(Dir,5)
+				 end
+				  -------创建虚拟子弹
+				 local bulletEffect=VFXPack.BulletPool.Children[math.random(1,#VFXPack.BulletPool.Children)]
+				 bulletEffect:SetParent(WorkSpace)
+				 bulletEffect.Name="Bullet"
+				 bulletEffect.Position=StartPos               --CurrentMuzzleFlashData.Node.Position
+				 bulletEffect.TrailsMode=Enum.EmitterTrailsMode.Particle
+				 bulletEffect.Visible=true
+				 self.BulletPool[bulletEffect.ID]={
+						 LastPosition = StartPos,                                                           --更新
+						 LastTimeMS = RunService:CurrentSteadyTimeStampMS (),      --更新
+						 ShootLength = 0,                                                                     --更新
+						 StartPos = StartPos,
+						 BulletSpeed = WeaponData[Gunid].speed,
+						 maxLength = WeaponData[Gunid].maxrange*100,
+						 EffectNode = bulletEffect,
+						 Dir = fireDir,
+						 Gunid = Gunid,
+						 Bulletid= Bulletid,
+						 seed=seed
+				 }
+		end
+end
+
+function GunAction:BulletShootStepBind()
+	   local BulletEffectPoll=VFXPack.BulletPool
+	   for i=1,50 do
+	          local bulletEffect=VFXPack.BulletFlash:Clone()
+			  bulletEffect.TrailsMode=Enum.EmitterTrailsMode.Disable
+			  bulletEffect.Visible=false
+			  bulletEffect:SetParent(BulletEffectPoll)
+	   end
+	   self.BulletPool={}
+	   RunService:BindToRenderStep("BulletShootUpdate", Enum.RenderPriority.Camera.Value+1, function( dt )
+		       if next(self.BulletPool) then
+			           ---获取当前时间，毫秒级别
+	                   local TimeMS=RunService:CurrentSteadyTimeStampMS ()
+			           for key,BulletData in pairs(self.BulletPool) do
+										  local RoundLength=BulletData.BulletSpeed*100*(TimeMS-BulletData.LastTimeMS)/1000   --厘米
+										  BulletData.LastTimeMS=TimeMS         --更新
+										  local MaxRoundLength=BulletData.maxLength-BulletData.ShootLength
+										  RoundLength=math.min(RoundLength,MaxRoundLength)
+										  local result=WorldService:RaycastClosest(BulletData.LastPosition,BulletData.Dir,RoundLength,false,{2,5})
+										  if result.isHit==true then
+										          local surfacedir=result.normal
+												  
+												  local sufaceEuler=Comm:unitVectorToEuler(surfacedir)
+												  if result.obj.CollideGroupID==2 then
+															  RemoteEvent:FireServer({EventName="BulletHoleDecal",ParentNode=result.obj,Position=result.position,Euler=Vector3.New(-sufaceEuler.X,-sufaceEuler.Y,0),Size=math.random(5,8)})
+												  elseif result.obj.CollideGroupID==5 then
+															  local diff=result.position-BulletData.StartPos
+															  local distance=math.sqrt(diff.X^2+diff.Y^2+diff.Z^2)
+															  local HitPart=result.obj.Name
+															  local Target=result.obj.Parent.Parent
+															  RemoteEvent:FireServer({EventName="GunHit",Uin=MyUin,Gunid=BulletData.Gunid,StartPos=BulletData.StartPos,Bulletid=BulletData.Bulletid,Target=Target,HitPart=HitPart,distance=distance,HitPos=result.position,HitEuler=sufaceEuler,seed=BulletData.seed,st=RunService:CurrentSteadyTimeStampMS ()})
+												              SoundControl:LocalBodyHitSound()
+												  end
+												  BulletData.EffectNode:SetParent(BulletEffectPoll)
+												  --BulletData.EffectNode:Stop (0)
+												  BulletData.EffectNode.TrailsMode=Enum.EmitterTrailsMode.Disable
+												  BulletData.EffectNode.Visible=false
+												  self.BulletPool[key]=nil
+										  else
+												 BulletData.ShootLength=BulletData.ShootLength+RoundLength   ---更新
+												 if BulletData.ShootLength>=BulletData.maxLength then
+														  BulletData.EffectNode:SetParent(BulletEffectPoll)
+														  BulletData.EffectNode:Stop (0)
+														  BulletData.EffectNode.TrailsMode=Enum.EmitterTrailsMode.Disable
+														  BulletData.EffectNode.Visible=false
+														  self.BulletPool[key]=nil
+												 else
+														  BulletData.LastPosition=BulletData.LastPosition+BulletData.Dir*RoundLength   --更新
+														  BulletData.EffectNode.Position=BulletData.LastPosition
+												 end
+										  end
+					   end
+			   end
+	    end)
+end
+GunAction:BulletShootStepBind()
+	
+function GunAction:KnifeAttack()
+	  if Character:GetAttribute("LiveState")~="Alive" then return end
+	  if self.KnifeAttaching then return end
+	  GunAction:PlayAnim("KnifeAttack")
+end
+
+function GunAction:KnifeAttackCheck()
+	  if Character:GetAttribute("LiveState")~="Alive" then return end
+	  local Camera=game:GetService("WorkSpace").Camera
+	  local UnitDir=Comm:eulerToUnitVector(Camera.Euler.X, Camera.Euler.Y, Camera.Euler.Z)
+	  local range=200
+	  local group={2,5}
+	  local result=WorldService:RaycastClosest(Camera.Position,UnitDir,range,false,group)
+	  if result.isHit==true then
+			 local node=result.obj
+			 if node.CollideGroupID==5 then
+				  local HitPart=node.Name
+				  local Target=node.Parent.Parent
+				  local distance=Comm:distance(Camera.Position,result.position)
+				  if distance<=range then
+				     RemoteEvent:FireServer({EventName="KnifeAttackHit",Target=Target,action=self.AnimClipName,HitPart=HitPart,distance=distance,HitPos=result.position,st=RunService:CurrentSteadyTimeStampMS ()})
+				     SoundControl:KnifeHit()
+				  end
+			 end
+	  end
+	  CameraControl:AddShake(math.random(100,300)/100, 200, 50, 0.7, 0.1)
+end
+
+function GunAction:GrenadeRdy()
+	  if self.firelock==true then return end
+	   if next(AnimControl.curAnim) and AnimControl.curAnim.ClipName~="throw1" and AnimControl.curAnim.ClipName~="throw2" then
+		  WorkSpace.CurrentCamera.throwline.Visible=true
+		  RemoteEvent:FireServer({EventName="GrenadeRdy",data=GameControl.GrenadePick})
+		  local AnimatorNode=WorkSpace.CurrentCamera.GunHand.Animator
+		  GunAction:PlayAnim("ThrowRdy")
+		  if MyDevice=="Mobile" then
+		       thisplayer.PlayerGui.GameUI.MobileBase.Cancelgrenade.Visible=true
+		  end
+	   end
+end
+
+function GunAction:GrenadeCancel()
+	  if GameControl.curWeapon==6 then
+		  WorkSpace.CurrentCamera.throwline.Visible=false
+		  RemoteEvent:FireServer({EventName="GrenadeCancel",data=GameControl.GrenadePick})
+		  GunAction:PlayAnim("ThrowCancel")
+		  if MyDevice=="Mobile" then
+		     thisplayer.PlayerGui.GameUI.MobileBase.Cancelgrenade.Visible=false
+		  end
+	  end
+end
+
+function GunAction:GrenadeThrow()
+	 if next(AnimControl.curAnim) and AnimControl.curAnim.ClipName=="throw1" and GameControl.curWeapon==6 then
+	     WorkSpace.CurrentCamera.throwline.Visible=false
+	     WorkSpace.CurrentCamera.GunHand.Hand.Grenade.Visible=false
+		 local Pos=WorkSpace.CurrentCamera.throwline.Position
+		 local Euler=WorkSpace.CurrentCamera.throwline.Euler
+		  local result=RemoteFunction:InvokeServer({EventName="GrenadeThrow",data=GameControl.GrenadePick,euler=Euler,Pos=Pos})
+		 if result==true then
+		     if MyMapid~=0 then
+				 local StockType=GameControl.GrenadePick.StockType
+				 local StockKey=GameControl.GrenadePick.StockKey
+				 local Stocki=GameControl.GrenadePick.Stocki
+				 local Node=GetItemNode(StockType,Stocki,StockKey,nil)
+				 local ParentNode=Node.Parent
+				 Node:Destroy()
+				 DeleteItem(ParentNode,StockType,Stocki,StockKey,nil,nil,nil)
+				 GameControl:UpdateGrenade()
+			 end
+			 GunAction:PlayAnim("Throw")
+			 GameControl.throwGrenadeid=GameControl.GrenadePick.id
+			 GameControl.GrenadePick=nil
+		 else
+	         ShowMsg("道具不存在")
+	     end
+		 if MyDevice=="Mobile" then
+		     thisplayer.PlayerGui.GameUI.MobileBase.Cancelgrenade.Visible=false
+		  end
+	 end
+end
+
+
+ClientEvent.Notify:Connect(function(param)
+		if param.EventName=="ActiveFire" then
+		   GunAction:Fire(param.Bulletid)
+		end
+ end)

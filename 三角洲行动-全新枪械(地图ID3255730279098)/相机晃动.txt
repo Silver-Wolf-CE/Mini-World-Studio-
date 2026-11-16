@@ -1,0 +1,241 @@
+local RunService = game:GetService("RunService")
+local Camera=game:GetService("WorkSpace").CurrentCamera
+
+--[[function CameraControl:AddLoopWave(amplitude, waveTime, exitSpeed,state)
+    local instance = {
+        -- 基础参数
+        amplitude = amplitude,    -- 最大摆动幅度
+        cycleSpeed = amplitude/(waveTime*4),  -- 循环速度（度/秒）
+        exitSpeed = exitSpeed,    -- 退出回归速度（度/秒）
+        
+        -- 运行时状态
+        phase = 0,                -- 当前相位（0-4对应四个阶段）
+        currentAngle = 0,
+        isExiting = false,
+        startTime = RunService:CurrentSteadyTimeStampMS(),
+        lastDirection = 1,
+		state=state
+    }
+    table.insert(self.WaveInstances, instance)
+    return instance -- 返回实例用于外部控制
+end
+
+function CameraControl:UpdateWaveInstance(instance)
+    local currentTime = RunService:CurrentSteadyTimeStampMS()
+    local deltaTime = (currentTime - instance.startTime)/1000
+    
+    if instance.isExiting==true then
+        -- 退出回归阶段
+        local targetAngle = 0
+        local step = instance.exitSpeed * deltaTime
+		
+		local function moveToward(current, target, step)
+			local diff = target - current
+			if math.abs(diff) <= step then
+				return target
+			else
+				return current + (diff > 0 and step or -step)
+			end
+		end
+		
+        instance.currentAngle = moveToward(instance.currentAngle, targetAngle, step)
+        
+        if math.abs(instance.currentAngle) < 0.1 then
+            return true -- 完成退出
+        end
+    else
+        -- 循环阶段
+        local angleDelta = instance.cycleSpeed * deltaTime * instance.lastDirection
+        instance.currentAngle = instance.currentAngle + angleDelta
+        
+        -- 相位切换检测
+        if math.abs(instance.currentAngle) >= instance.amplitude then
+		    SoundControl:LocalStep(instance.state)
+            instance.lastDirection = -instance.lastDirection
+            instance.currentAngle = instance.amplitude * (instance.currentAngle > 0 and 1 or -1)
+            instance.startTime = currentTime
+        end
+    end
+    
+    return false
+end
+
+-- 退出函数
+function CameraControl:ExitWave(instance)
+    if instance and not instance.isExiting then
+        instance.isExiting = true
+        instance.startTime = RunService:CurrentSteadyTimeStampMS()
+        instance.exitStartAngle = instance.currentAngle
+    end
+end
+
+function CameraControl:WaveInit()
+    self.WaveInstances = {}
+    
+    -- 核心更新循环（每帧执行）
+    RunService:BindToRenderStep("CameraWave", Enum.RenderPriority.Camera.Value+1, function()
+        local totalWaveZ = 0
+        
+        -- 遍历所有实例并更新
+        for i = #self.WaveInstances, 1, -1 do
+            local instance = self.WaveInstances[i]
+            local isFinished = self:UpdateWaveInstance(instance) -- 这里调用更新
+            
+            if isFinished then
+                table.remove(self.WaveInstances, i)
+            else
+                totalWaveZ = totalWaveZ + instance.currentAngle
+            end
+        end
+        
+        Camera:SetAttribute("WaveEuler", Vector3.new(0, 0, totalWaveZ))
+    end)
+end--]]
+
+function CameraControl:AddLoopWave(amplitude, waveTime, exitSpeed, state)
+    local instance = {
+        -- 基础参数
+        amplitude = amplitude,    -- 最大摆动幅度
+        waveTime = waveTime,      -- 完整周期时间（秒）
+        exitSpeed = exitSpeed,    -- 退出回归速度（度/秒）
+        
+        -- 运行时状态
+        currentAngle = 0,
+        isExiting = false,
+        startTime = RunService:CurrentSteadyTimeStampMS(),
+        state = state,
+        lastSoundSegment = -1,    -- 记录上次触发声音的阶段
+        
+        -- 变速相关
+        originalWaveTime = waveTime,  -- 原始周期时间
+        targetWaveTime = waveTime,    -- 目标周期时间
+        transitionProgress = 1,       -- 过渡进度 (0-1, 1表示完成)
+        transitionDuration = 0        -- 过渡持续时间
+    }
+    table.insert(self.WaveInstances, instance)
+    return instance -- 返回实例用于外部控制
+end
+
+
+function CameraControl:WaveChange(instance, targetWaveTime, transitionDuration)
+    if not instance or instance.isExiting then
+        return false
+    end
+	
+    transitionDuration = transitionDuration or 0.5  -- 默认过渡时间0.5秒
+	instance.originalWaveTime = instance.waveTime  -- 记录当前周期时间
+	instance.targetWaveTime = targetWaveTime       -- 设置目标周期时间
+	instance.transitionProgress = 0                -- 开始过渡
+	instance.transitionDuration = transitionDuration  -- 设置过渡持续时间
+	instance.transitionStartTime = RunService:CurrentSteadyTimeStampMS()  -- 记录过渡开始时间
+    return true
+end
+
+function CameraControl:UpdateWaveInstance(instance, deltaTime)
+    local currentTime = RunService:CurrentSteadyTimeStampMS()
+    
+    -- 处理周期时间过渡
+    if instance.transitionProgress < 1 then
+        local transitionElapsed = (currentTime - instance.transitionStartTime) / 1000
+        instance.transitionProgress = math.min(transitionElapsed / instance.transitionDuration, 1)
+        
+        -- 使用缓动函数平滑过渡（这里使用线性插值，可以改为其他缓动函数）
+        instance.waveTime = instance.originalWaveTime + (instance.targetWaveTime - instance.originalWaveTime) * instance.transitionProgress
+    end
+    
+    if instance.isExiting then
+        -- 退出回归阶段：使用deltaTime确保回归速度稳定
+        local targetAngle = 0
+        local step = instance.exitSpeed * deltaTime
+        
+        -- 平滑移动到目标角度
+        local function moveToward(current, target, step)
+            local diff = target - current
+            if math.abs(diff) <= step then
+                return target
+            else
+                return current + (diff > 0 and step or -step)
+            end
+        end
+        
+        instance.currentAngle = moveToward(instance.currentAngle, targetAngle, step)
+        
+        -- 检查是否完成退出
+        if math.abs(instance.currentAngle) < 0.1 then
+            return true -- 完成退出
+        end
+    else
+        -- 循环阶段：基于总经过时间计算，确保帧率无关
+        local elapsedTime = (currentTime - instance.startTime) / 1000  -- 转换为秒
+        local totalPhase = elapsedTime / instance.waveTime  -- 总相位进度
+        local phaseInCycle = totalPhase % 1  -- 当前周期内的相位 [0, 1)
+        
+        -- 计算当前处于哪个阶段 (0,1,2,3)
+        local currentSegment = math.floor(phaseInCycle * 4)
+        local segmentPhase = (phaseInCycle * 4) % 1  -- 在当前阶段内的进度 [0, 1)
+        
+        -- 根据阶段计算当前角度
+        if currentSegment == 0 then
+            -- 第一阶段：0 → amplitude
+            instance.currentAngle = instance.amplitude * segmentPhase
+        elseif currentSegment == 1 then
+            -- 第二阶段：amplitude → 0
+            instance.currentAngle = instance.amplitude * (1 - segmentPhase)
+        elseif currentSegment == 2 then
+            -- 第三阶段：0 → -amplitude  
+            instance.currentAngle = -instance.amplitude * segmentPhase
+        else
+            -- 第四阶段：-amplitude → 0
+            instance.currentAngle = -instance.amplitude * (1 - segmentPhase)
+        end
+        
+        -- 检测阶段变化并触发声音（帧率无关的精确触发）
+        if currentSegment ~= instance.lastSoundSegment then
+            instance.lastSoundSegment = currentSegment
+            SoundControl:LocalStep(instance.state)
+        end
+    end
+
+    return false
+end
+
+-- 退出函数
+function CameraControl:ExitWave(instance)
+    if instance and not instance.isExiting then
+        instance.isExiting = true
+        instance.startTime = RunService:CurrentSteadyTimeStampMS()
+    end
+end
+
+function CameraControl:WaveInit()
+    self.WaveInstances = {}
+    self.lastUpdateTime = RunService:CurrentSteadyTimeStampMS()
+    
+    -- 核心更新循环（每帧执行）
+    RunService:BindToRenderStep("CameraWave", Enum.RenderPriority.Camera.Value + 1, function()
+        local currentTime = RunService:CurrentSteadyTimeStampMS()
+        local deltaTime = (currentTime - self.lastUpdateTime) / 1000  -- 计算帧间时间差
+        self.lastUpdateTime = currentTime
+        
+        local totalWaveZ = 0
+        
+        -- 遍历所有实例并更新
+        for i = #self.WaveInstances, 1, -1 do
+            local instance = self.WaveInstances[i]
+            local isFinished = self:UpdateWaveInstance(instance, deltaTime)
+            
+            if isFinished then
+                table.remove(self.WaveInstances, i)
+            else
+                totalWaveZ = totalWaveZ + instance.currentAngle
+            end
+        end
+        
+        -- 应用总晃动角度到相机
+        Camera:SetAttribute("WaveEuler", Vector3.new(0, 0, totalWaveZ))
+    end)
+end
+
+-- 初始化
+
+CameraControl:WaveInit()

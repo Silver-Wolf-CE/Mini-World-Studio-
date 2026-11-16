@@ -1,0 +1,451 @@
+local RunService = game:GetService("RunService")
+
+AnimControl={}
+AnimControl.curAnim={}
+AnimControl.EventPool={}
+function AnimControl:Init()
+	  RunService:BindToRenderStep("AnimUpdate", Enum.RenderPriority.Camera.Value+1, function( )
+		     if next(AnimControl.curAnim) then
+			         local ClipName=AnimControl.curAnim.ClipName
+					 local AnimatorNode=AnimControl.curAnim.AnimatorNode
+					 if AnimatorNode.Parent==nil then
+					        AnimControl.curAnim={}
+					 else
+						 if AnimControl.EventPool[ClipName] then
+								local PlayedTime=AnimatorNode:GetCurrentStatePlayedTime (0)
+								local PlayedNum=math.floor(PlayedTime)
+								if AnimControl.curAnim.PlayedNum~=PlayedNum then
+								         for _,data in ipairs(AnimControl.EventPool[ClipName]) do
+										        if data.state==false then
+												       data.state=true
+													   data.Func()
+												end
+										 end
+										 AnimControl.curAnim.PlayedNum=PlayedNum
+								end
+								if AnimControl.EventPool[ClipName] then
+										for _,data in ipairs(AnimControl.EventPool[ClipName]) do
+											  if PlayedTime<(data.EventTime+PlayedNum) then
+													  data.state=false
+											  else
+													  if data.state==false then
+															 data.state=true
+															 data.Func()
+													  end
+											  end
+										end
+								end
+						 end
+					 end
+			 end
+	  end)
+end
+
+function AnimControl:EventInit()
+	  AnimControl.EventPool={}
+	  if GameControl.curWeapon==4 then
+	          if MyKnifeSkin.curid==1 then
+					   AnimControl.EventPool={
+							 Attack1={
+											  {EventTime=0.25,state=false,Func=function() GunAction:KnifeAttackCheck() end}
+											},
+							 Attack2={
+											  {EventTime=0.291,state=false,Func=function() GunAction:KnifeAttackCheck() end}
+											}
+					   }
+			  elseif MyKnifeSkin.curid==2 then
+			          AnimControl.EventPool={
+							 Attack1={
+											  {EventTime=0.25,state=false,Func=function() GunAction:KnifeAttackCheck() end}
+											},
+							 Attack2={
+											  {EventTime=0.5,state=false,Func=function() GunAction:KnifeAttackCheck() end}
+											}
+					   }
+			  end
+	  elseif GameControl.curWeapon==6 then
+	           AnimControl.EventPool={
+			         throw2={
+					                  {EventTime=1,state=false,SingleActive=true,Func=function() GameControl:ThrowGrenadeCheck() end}
+								   }
+			   }
+	  elseif GameControl.curWeapon<4 then
+					  local GunName=ItemData[MyWeapon[GameControl.curWeapon].Itemid].name
+					  if GunName=="M1911" or GunName=="Deagle" or GunName=="G17" then
+							 AnimControl.EventPool={
+								  Reload1={
+														 {EventTime=0.22,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.58,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+								  Reload2={
+														 {EventTime=0.116,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+														 {EventTime=0.85,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+							 }
+					  elseif GunName=="AKM" then
+							 AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.373,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.305,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.529,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.705,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.45,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.625,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Knock") end},
+														 {EventTime=0.843,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="191" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.373,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.185,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.785,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="AK12" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.586,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.294,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.529,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.8,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="APC9" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.146,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.64,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.176,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.541,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.729,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.437,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.625,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Knock") end},
+														 {EventTime=0.812,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="AWM" or GunName=="M40" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.211,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.682,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.181,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.545,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+														 {EventTime=0.781,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								--Reload3={
+								--                         {EventTime=0.25,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock1") end},
+								--				 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.438,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+												 },
+							}
+					  elseif GunName=="Bizon" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.066,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.066,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.823,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														{EventTime=0.0625,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling1") end},
+														 {EventTime=0.625,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling2") end},
+														 {EventTime=0.875,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling3") end},
+											 }
+							}
+					  elseif GunName=="CAR15" or GunName=="M4A1" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.171,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.5,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.785,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								 review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove3") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert3") end},
+												 },
+							}
+					  elseif GunName=="Famas" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.158,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.539,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.48,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.733,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								 review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="G36" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.346,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.117,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.564,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.729,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								 review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					 elseif GunName=="M249" then
+							AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling1") end},
+														 {EventTime=0.205,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling2") end},
+														 {EventTime=0.35,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling3") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling4") end},
+														 {EventTime=0.655,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling5") end},
+														 {EventTime=0.827,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling6") end},
+												},
+								Reload2={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling1") end},
+														 {EventTime=0.205,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling3") end},
+														 {EventTime=0.394,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling4") end},
+														 {EventTime=0.505,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling5") end},
+														 {EventTime=0.694,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling6") end},
+														 {EventTime=0.866,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								 review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"View1") end},
+														 {EventTime=0.272,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"View2") end},
+														 {EventTime=0.644,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"View3") end},
+														 {EventTime=0.916,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"View4") end},
+												 },
+							}
+					  elseif GunName=="M1014" then
+							AnimControl.EventPool={
+								 Reload1_1={
+														 {EventTime=0.571,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling1") end},
+												},
+								Reload1_2={
+														 {EventTime=0.714,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"BulletInsert1") end},
+												 },
+								Reload1_3={
+														 {EventTime=0.7,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling2") end},
+												 },
+								 Reload4={
+														 {EventTime=0.35,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+														 {EventTime=0.5,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"BulletInsert2") end},
+														 {EventTime=0.816,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling3") end},
+												 },
+								 review={
+														 {EventTime=0.066,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock1") end},
+														 {EventTime=0.266,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling1") end},
+														 {EventTime=0.538,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"BulletInsert1") end},
+														 {EventTime=0.761,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock1") end},
+														 {EventTime=0.816,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock2") end},
+														 {EventTime=0.916,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Handling2") end}
+												 },
+							}
+					  elseif GunName=="MK14" then
+							  AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.294,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.529,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.75,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								 review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove3") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert3") end},
+												 },
+							}
+					  elseif GunName=="MP9" then
+							 AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.294,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.529,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+														 {EventTime=0.75,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								 review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="MPX" then
+							 AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.171,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.5,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.785,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.437,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.625,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Knock") end},
+														 {EventTime=0.812,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					   elseif GunName=="S12K" then
+							 AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.373,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.305,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.529,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.729,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="SCAR" then
+							 AnimControl.EventPool={
+								 Reload1={
+														 {EventTime=0.373,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.6,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.176,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.529,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.741,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="SKS" then
+							 AnimControl.EventPool={
+								Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.117,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.517,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.764,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="SVD" then
+							 AnimControl.EventPool={
+								Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.117,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.517,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.764,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="UMP45" then
+							 AnimControl.EventPool={
+								Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.011,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Bolt") end},
+														 {EventTime=0.233,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.566,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.733,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.055,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.433,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  elseif GunName=="Vector" then
+							 AnimControl.EventPool={
+								Reload1={
+														 {EventTime=0.133,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.533,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												},
+								Reload2={
+														 {EventTime=0.117,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove2") end},
+														 {EventTime=0.517,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert2") end},
+														 {EventTime=0.764,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Cock") end},
+												 },
+								review={
+														 {EventTime=0.437,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagRemove1") end},
+														 {EventTime=0.625,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"Knock") end},
+														 {EventTime=0.812,state=false,Func=function() SoundControl:LocalWeaponSound(GunName,"MagInsert1") end},
+												 },
+							}
+					  end
+	  end
+	  --[[AnimControl.EventPool.walk={
+	                                                    {EventTime=0.5,state=false,Func=function() SoundControl:LocalStep("walk") end},
+														{EventTime=1,state=false,Func=function() SoundControl:LocalStep("walk") end},
+	                                                 }
+	  AnimControl.EventPool.run={
+	                                                    {EventTime=0.5,state=false,Func=function() SoundControl:LocalStep("run") end},
+														{EventTime=1,state=false,Func=function() SoundControl:LocalStep("run") end},
+	                                                 }
+	 AnimControl.EventPool.GrovelMove={
+	                                                    {EventTime=0.5,state=false,Func=function() SoundControl:LocalStep("GrovelMove") end},
+														{EventTime=1,state=false,Func=function() SoundControl:LocalStep("GrovelMove") end},
+	                                                 }--]]
+	AnimControl.EventPool.pick={
+	                                                     {EventTime=0.75,state=false,Func=function() CameraControl:AddShake(1.5, 200, 150, 0.7, 0.1) end},
+	                                             }
+end
+
