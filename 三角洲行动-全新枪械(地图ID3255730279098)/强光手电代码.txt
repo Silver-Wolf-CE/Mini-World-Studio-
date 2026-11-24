@@ -1,0 +1,234 @@
+local WorkSpace=game:GetService("WorkSpace")
+local MainStorage=game:GetService("MainStorage")
+local Comm=require(MainStorage.Commom)
+local GunControlModule=require(MainStorage.GunControlModule)
+local RemoteEvent=MainStorage:WaitForChild("RemoteEvent")
+local RunService = game:GetService("RunService")
+local WorldService=game:GetService("WorldService")
+
+local Players=game:GetService("Players")
+local Character=Players.LocalPlayer.Character
+
+
+
+function GunAction:TurnLight()
+	  local TPSFlashLights=GunControlModule:GetFlashLights(WorkSpace.Camera.GunHand.Body.GunModel)
+	  if #TPSFlashLights>0 then
+			  if Character:GetAttribute("Light")==false then
+					Character:SetAttribute("Light",true)
+			  else
+					Character:SetAttribute("Light",false)
+			  end
+			  SoundControl:LocalTurnOnSound()
+			  GunAction:FPSFlashLightUpdate()
+	  end
+end
+
+function GunAction:FPSFlashLightUpdate()
+	 local UISHOW=false
+	 local isOn=Character:GetAttribute("Light")
+	  if WorkSpace.Camera.GunHand.Body then
+		  local TPSFlashLights=GunControlModule:GetFlashLights(WorkSpace.Camera.GunHand.Body.GunModel)
+		  if #TPSFlashLights>0 then
+				  for _,a in ipairs(TPSFlashLights) do
+						 a.Active=isOn
+						 a.LightType=Enum.LightType.Point
+						 a.LightType=Enum.LightType.Spot
+				  end
+				  UISHOW=true
+		  end
+	  end
+	  GameControl:UpDate_Flashnum(UISHOW,isOn,self.LightNum)  ---UI刷新
+end
+
+function GunAction:FlashLightUnbind()
+	   RunService:UnbindFromRenderStep("FlashLightUpdate")
+end
+
+function GunAction:FlashLightInit()
+	   GunAction:FlashLightUnbind()
+	   RunService:BindToRenderStep("FlashLightUpdate",Enum.RenderPriority.Camera.Value+1, function()
+	             ----FPS去除自己角色TPS光源
+	             if Character.Hand.Gun then
+					 local TPSFlashLights=GunControlModule:GetFlashLights(Character.Hand.Gun)
+					 for _,a in ipairs(TPSFlashLights) do
+							 a:Destroy()
+					 end
+			    end
+				-----TPS
+	            local curPlayers=Players:GetPlayers ()
+				for _,PlayerNode in ipairs(curPlayers) do
+				       local uin=PlayerNode.UserId
+					   if uin~=MyUin then
+						   local TPSPlayer=Players:GetPlayerByUserId (uin).Character
+						   local dist=(TPSPlayer.Position-Character.Position).Length
+						   if dist<5000 then
+						              if TPSPlayer.Hand.Gun then
+							                   local TPSFlashLights=GunControlModule:GetFlashLights(TPSPlayer.Hand.Gun)
+											   if #TPSFlashLights>0 then
+													   if TPSPlayer:GetAttribute("Light")==true then
+															   for _,a in ipairs(TPSFlashLights) do
+																	 a.Active=true
+																	 a.LightType=Enum.LightType.Point
+																	 a.LightType=Enum.LightType.Spot
+																	 a.Visible=true
+																	 local dir=Comm:eulerToUnitVector(a.Euler.X, a.Euler.Y, a.Euler.Z)
+																	 local result=WorldService:RaycastClosest(a.Position,dir,1000,true,{2})
+																	 if result.isHit==true then
+																			local distance=(result.position-a.Position).Length
+																			for _,aa in ipairs(a.Children) do
+																				   if aa.Name=="Surround1" then
+																						   aa.Start3DSizeXConstant=1000*distance/1500
+																						   aa.Start3DSizeYConstant=500*distance/1500
+																				   elseif aa.Name=="Surround2" then
+																						   aa.Start3DSizeXConstant=1000*distance/1500
+																						   aa.Start3DSizeYConstant=300*distance/1500
+																				   end
+																			end
+																	 else
+																			for _,aa in ipairs(a.Children) do
+																					if aa.Name=="Surround1" then
+																						 aa.Start3DSizeXConstant=1000
+																						 aa.Start3DSizeYConstant=500
+																					elseif aa.Name=="Surround2" then
+																						 aa.Start3DSizeXConstant=1000
+																						 aa.Start3DSizeYConstant=300
+																					end
+																			end
+																	 end
+															   end
+													   else
+															   for _,a in ipairs(TPSFlashLights) do
+																	 a.Active=false
+																	 a.Visible=false
+															   end
+													   end
+											   end
+						              end
+							end
+					end
+				end
+	   end)
+end
+
+function GunAction:LightFlashing()
+	   if self.LightNum>0 then
+	          if Character:GetAttribute("Light")==false or self.LightFlashCD then return end  ---关闭时候无法爆闪
+	          local TPSFlashLights=GunControlModule:GetFlashLights(WorkSpace.Camera.GunHand.Body.GunModel)
+			  if #TPSFlashLights>0 then
+			         self.LightFlashCD=true
+			         self.LightNum=math.max(0,self.LightNum-1)
+					 GameControl:UpDate_Flashnum(true,true,self.LightNum)  ---UI刷新
+			         local maxTime=5    ---爆闪时间，可修改
+					 RemoteEvent:FireServer({EventName="LightFlashing",maxTime=maxTime})
+					 for i=1,math.floor(maxTime/0.2) do
+							 for _,a in ipairs(TPSFlashLights) do
+									a.Flash.Light.Active=true
+									a.Flash.Light.LightType=Enum.LightType.Point
+									a.Flash.Light.LightType=Enum.LightType.Spot
+							 end
+							 wait(0.1)
+							 for _,a in ipairs(TPSFlashLights) do
+									a.Flash.Light.Active=false
+							 end
+							 wait(0.1)
+					 end
+					 wait(3)
+					 self.LightFlashCD=nil
+					 GameControl:UpDate_Flashnum(true,true,self.LightNum)  ---UI刷新
+			  end
+	   end
+end
+
+function GunAction:TPSLightFlashing(uin,maxTime,attach)
+      local TPSPlayer=Players:GetPlayerByUserId (uin).Character
+	  local TPSFlashLights=GunControlModule:GetFlashLights(TPSPlayer.Hand.Gun)
+	  local maxScale=0
+	  local maxAlpha=0
+	  if #TPSFlashLights>0 then
+	          local decRate=1
+	          if MyHelmet.attach then
+			        if ItemData[MyHelmet.attach].FlashDec then
+					         decRate=(100-ItemData[MyHelmet.attach].FlashDec)/100
+							 RemoteEvent:FireServer({EventName="FlashDefence",FromUin=uin})
+					end
+			  end
+	          local maxDistance,baseScale,baseAngle=GunControl:CalAttachLight(attach)
+			  maxDistance=maxDistance*100  ---转换厘米
+			  local RemoteCall=false
+	          for i=1,math.floor(maxTime/0.2) do
+			         local isCover=true
+			         for _,a in ipairs(TPSFlashLights) do
+			                local distance=(Character.Position-a.Position).Length
+							local dir=Comm:eulerToUnitVector(180-a.Euler.X,a.Euler.Y,a.Euler.Z)
+							 local result=WorldService:RaycastClosest(a.Position,dir,distance,true,{2})
+							 if result.isHit==false then
+							       isCover=false
+								   break
+							 end
+			         end
+			  
+			         local Scale=0
+					 local Alpha=0
+					 local distance=(Character.Position-TPSPlayer.Position).Length
+					 if distance<maxDistance then
+							  Scale=baseScale*(maxDistance-distance)/maxDistance+1
+					 end
+
+					 local PlayerDirection=Comm:eulerToUnitVector(180-TPSPlayer.Euler.X,TPSPlayer.Euler.Y,TPSPlayer.Euler.Z)
+					 local PlayerToMyPos=Vector3.Normalize(Character.Position-TPSPlayer.Position)
+					 local DotResult=Vector3.Dot(PlayerDirection,PlayerToMyPos)
+					 local maxCosTheta = math.cos(math.rad(baseAngle/2)) -- 圆锥的半角
+					 if DotResult>= maxCosTheta then
+					         Alpha=(DotResult-maxCosTheta)/(1-maxCosTheta)
+					 end
+					 local isActive=false
+					 if Scale>maxScale then
+					       maxScale=Scale
+						   isActive=true
+					 end
+					 if Alpha>maxAlpha then
+					       maxAlpha=Alpha
+						   isActive=true
+					 end
+					 
+					 if isActive==true and isCover==false then
+					       HaloControl:HaloUIShow(Scale,Alpha*decRate)
+						   if RemoteCall==false then
+						         RemoteCall=true
+								 RemoteEvent:FireServer({EventName="FlashHit",FromUin=uin})
+						   end
+					 end
+					 for _,a in ipairs(TPSFlashLights) do
+					        a.Flash.Start3DSizeXConstant=Alpha*500
+							a.Flash.Start3DSizeYConstant=Alpha*500
+							a.Flash.Start3DSizeZConstant=Alpha*500
+					        a.Flash:ReStart()
+							a.Flash.Light.LightType=Enum.LightType.Point
+							a.Flash.Light.LightType=Enum.LightType.Spot
+							a.Flash.Light.Active=true
+					 end
+					 wait(0.1)
+					 for _,a in ipairs(TPSFlashLights) do
+							a.Flash.Light.Active=false
+					 end
+					 wait(0.1)
+			 end
+	  end
+end
+
+function GunAction:CalLightNum()
+	   local LightNum=0
+	   for i=1,3 do
+	          if next(MyWeapon[i]) then
+			         for attachi=9,12 do
+					         if MyWeapon[i].attach[attachi]~=0 then
+							       if AttachData[MyWeapon[i].attach[attachi]].lightnum then
+								          LightNum=LightNum+AttachData[MyWeapon[i].attach[attachi]].lightnum
+								   end
+							 end
+					 end
+			  end
+	   end
+	   return LightNum
+end

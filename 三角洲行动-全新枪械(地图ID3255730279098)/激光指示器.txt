@@ -1,0 +1,190 @@
+local WorkSpace=game:GetService("WorkSpace")
+local MainStorage=game:GetService("MainStorage")
+local Comm=require(MainStorage.Commom)
+local GunControlModule=require(MainStorage.GunControlModule)
+local RemoteEvent=MainStorage:WaitForChild("RemoteEvent")
+local RunService = game:GetService("RunService")
+local WorldService=game:GetService("WorldService")
+local Players=game:GetService("Players")
+local Character=Players.LocalPlayer.Character
+
+function GunAction:LaserDestroy()
+	  self.LaserNodeList={}
+	  RunService:UnbindFromRenderStep("LaserUpdate")
+end
+
+function GunAction:LaserInit(GunModel)
+	   self:LaserDestroy()
+	   if GameControl.curWeapon<4 then
+			   for i=1,10 do
+						if GunModel.Point["AttachL"..i] and GunModel.Point["AttachL"..i].Visible==true and GunModel.Point["AttachL"..i].Model.Laser then
+								table.insert(self.LaserNodeList,GunModel.Point["AttachL"..i].Model.Laser)
+						end
+						if GunModel.Point["AttachR"..i] and GunModel.Point["AttachR"..i].Visible==true and GunModel.Point["AttachR"..i].Model.Laser then
+								table.insert(self.LaserNodeList,GunModel.Point["AttachR"..i].Model.Laser)
+						end
+						if GunModel.Point["AttachD"..i] and GunModel.Point["AttachD"..i].Visible==true and GunModel.Point["AttachD"..i].Model.Laser then
+								table.insert(self.LaserNodeList,GunModel.Point["AttachD"..i].Model.Laser)
+						end
+			   end
+			   for _,a in ipairs(self.LaserNodeList) do
+					a.Laserspot.Visible=false
+			   end
+	   end
+	   if #self.LaserNodeList>0 then
+	         GameControl:UpData_Laser(true,self.LaserOn)
+	         --Players.LocalPlayer.PlayerGui.GameUI.Aim.Visible=false
+	         RunService:BindToRenderStep("LaserUpdate",Enum.RenderPriority.Camera.Value+1, function()
+	                 	if self.LaserOn==true then
+						             if #self.LaserNodeList==0 then return end
+									 for _,a in ipairs(self.LaserNodeList) do
+									        a.Visible=true
+									 end
+									 local spotlist={}
+									 if self.AimMode==0 then
+									        for i,a in ipairs(self.LaserNodeList) do
+											         a.LocalEuler=Vector3.New(0,180,0)
+											         local dir=Comm:eulerToUnitVector(self.LaserNodeList[1].Euler.X, self.LaserNodeList[1].Euler.Y, self.LaserNodeList[1].Euler.Z)
+									                 spotlist[i]={a.Position,dir}
+											end
+									else
+											local pos,dir=self:GetAimStartPosAndDir()
+											for i,_ in ipairs(self.LaserNodeList) do
+											    spotlist[i]={pos,dir}
+											end
+									 end
+									 for i,spot in pairs(spotlist) do
+											 local result=WorldService:RaycastClosest(spot[1],spot[2],1000,true,{1,2})
+											 if result.isHit==true then
+											       local dir=Comm:Normalize(result.position-self.LaserNodeList[i].Position)
+												   local NewEuler=Comm:unitVectorToEuler(dir)
+												   self.LaserNodeList[i].Euler=Vector3.New(180+NewEuler.X,NewEuler.Y,0)
+												   local distance=(result.position-self.LaserNodeList[i].Position).Length
+												   self.LaserNodeList[i].Laserspot.LocalPosition=Vector3.New(0,0,distance*5-5)
+												   self.LaserNodeList[i].Laserspot.Visible=true
+											 else
+											       local dir=Comm:Normalize(spot[1]+spot[2]*500-self.LaserNodeList[i].Position)
+												   local NewEuler=Comm:unitVectorToEuler(dir)
+												   self.LaserNodeList[i].Euler=Vector3.New(180+NewEuler.X,NewEuler.Y,0)
+												   self.LaserNodeList[i].Laserspot.Visible=false
+											 end
+									end
+						else
+						        if #self.LaserNodeList==0 then return end
+								for _,a in ipairs(self.LaserNodeList) do
+									     a.Visible=false
+								end
+						end
+			 end)
+	   else
+	         --Players.LocalPlayer.PlayerGui.GameUI.Aim.Visible=true
+			 GameControl:UpData_Laser(false,self.LaserOn)
+	   end
+end
+
+
+function GunAction:TPSLaserUnBind()
+	 RunService:UnbindFromRenderStep("TPSLaserUpdate")
+end
+
+function GunAction:TPSLaserInit()
+	self.LaserNodeTpsList={}
+	RunService:UnbindFromRenderStep("TPSLaserUpdate")
+	RunService:BindToRenderStep("TPSLaserUpdate",Enum.RenderPriority.Camera.Value+1, function()
+		        -----TPS
+				GunAction:TPSLaserUpdate()
+				if next(self.LaserNodeTpsList) then
+					   for uin,tpsraserpool in pairs(self.LaserNodeTpsList) do
+					         if Players:GetPlayerByUserId (uin) then
+							         local TPSPlayer=Players:GetPlayerByUserId (uin).Character
+									 if TPSPlayer:GetAttribute("Laser")==false then
+									          for _,a in ipairs(tpsraserpool) do
+											           a.Visible=false
+											  end
+									 else
+											  for _,a in ipairs(tpsraserpool) do
+											          a.Visible=true
+													  local dir=Comm:eulerToUnitVector(a.Euler.X, a.Euler.Y, a.Euler.Z)
+													  local result=WorldService:RaycastClosest(a.Position,dir,1000,true,{1,2})
+													   if result.isHit==true then
+															 local distance=(result.position-a.Position).Length
+															 local speed=100*distance/300
+															 a.Laserline1.StartSpeedConstant= speed
+															 a.Laserline2.StartSpeedConstant= speed
+															 a.Laserspot.Position=result.position
+															 a.Laserspot.Visible=true
+													   else
+															 a.Laserline1.StartSpeedConstant= 100
+															 a.Laserline2.StartSpeedConstant= 100
+															 a.Laserspot.Visible=false
+													   end
+											  end
+									end
+							else
+							        self.LaserNodeTpsList[uin]=nil
+							end
+					   end
+				end
+	   end)
+end
+
+function GunAction:TPSLaserUpdate()
+	   if not self.LaserNodeTpsList then self.LaserNodeTpsList={} end
+	   local curPlayers=Players:GetPlayers ()
+	   for uin,_ in pairs(self.LaserNodeTpsList) do
+	           local TPSPlayerNode=Players:GetPlayerByUserId (uin)
+			   if not TPSPlayerNode then self.LaserNodeTpsList[uin]=nil end
+	   end
+	   for _,PlayerNode in ipairs(curPlayers) do
+	            local TPSPlayer=PlayerNode.Character
+				local uin=PlayerNode.UserId
+				if uin~=MyUin then
+						local distance=(TPSPlayer.Position-Character.Position).Length
+						if distance<5000 then
+								if TPSPlayer.Hand.Gun then
+											   self.LaserNodeTpsList[uin]={}
+											   for i=1,10 do
+													 if TPSPlayer.Hand.Gun.Point["AttachL"..i] and
+														TPSPlayer.Hand.Gun.Point["AttachL"..i].Model.Laser then
+														table.insert(self.LaserNodeTpsList[uin],TPSPlayer.Hand.Gun.Point["AttachL"..i].Model.Laser)
+													 end
+													  if TPSPlayer.Hand.Gun.Point["AttachR"..i] and
+														TPSPlayer.Hand.Gun.Point["AttachR"..i].Model.Laser then
+														table.insert(self.LaserNodeTpsList[uin],TPSPlayer.Hand.Gun.Point["AttachR"..i].Model.Laser)
+													 end
+													  if TPSPlayer.Hand.Gun.Point["AttachD"..i] and
+														TPSPlayer.Hand.Gun.Point["AttachD"..i].Model.Laser then
+														table.insert(self.LaserNodeTpsList[uin],TPSPlayer.Hand.Gun.Point["AttachD"..i].Model.Laser)
+													 end
+											 end
+							  else
+									if self.LaserNodeTpsList[uin] then
+											self.LaserNodeTpsList[uin]=nil
+									end
+							  end
+						else
+						      self.LaserNodeTpsList[uin]=nil
+						end
+			   end
+	   end
+end
+
+function GunAction:TurnLaser()
+	  if #self.LaserNodeList>0 then
+		  if self.LaserOn==false then
+			 self.LaserOn=true
+			 Character:SetAttribute("Laser",true)
+			 SoundControl:LocalTurnOnSound()
+			 --Players.LocalPlayer.PlayerGui.GameUI.Aim.Visible=false
+			 GameControl:UpData_Laser(true,self.LaserOn)
+		  else
+			 self.LaserOn=false
+			 Character:SetAttribute("Laser",false)
+			 SoundControl:LocalTurnOnSound()
+			 --Players.LocalPlayer.PlayerGui.GameUI.Aim.Visible=true
+			 GameControl:UpData_Laser(true,self.LaserOn)
+		  end
+	  else
+	         GameControl:UpData_Laser(false,self.LaserOn)
+	  end
+end

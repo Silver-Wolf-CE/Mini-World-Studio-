@@ -1,0 +1,123 @@
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService('TweenService')
+local WorldService=game:GetService("WorldService")
+local Camera=game:GetService("WorkSpace").CurrentCamera
+local MainStorage=game:GetService("MainStorage")
+local RemoteEvent=MainStorage:WaitForChild("RemoteEvent")
+local Comm=require(MainStorage.Commom)
+local players=game:GetService("Players")
+local thisplayer=players.LocalPlayer
+local Character=thisplayer.Character
+
+
+Character.AttributeChanged:Connect(function(attr)
+    if attr == "Position" then
+	       if Character:GetAttribute("curSide")==0 then return end
+            local curPosition=Character.Position+Vector3.New(0,148,0)
+			local UnitDir=Vector3.Normalize(Camera.Position-curPosition)
+			local result = WorldService:RaycastClosest(curPosition, UnitDir, 150, false, {2})
+			if result.isHit == true then
+			         CameraControl:SideTurn(0)
+			end
+	end
+end)
+
+
+function CameraControl:SideTurnInit()
+	 Character:SetAttribute("curSide",0)
+	 if self.SideTween then
+        self.SideTween:Cancel()
+        self.SideTween = nil
+     end
+	 Camera.SidePos.Value=Vector3.New(0,0,0)
+	 Camera.SideEuler.Value=Vector3.New(0,0,0)
+	 if self.sideEulerConnection then
+	      self.sideEulerConnection:Disconnect()
+	 end
+	 self.sideEulerConnection=Camera.SideEuler.AttributeChanged:Connect(function(attr)
+			if attr=="Value" then
+					local curZ=Camera.SideEuler.Value.Z
+					if curZ==0 then
+						Camera.SidePos.Value=Vector3.New(0,0,0)
+					else
+						local side=-curZ/math.abs(curZ)*90
+						local dir=Comm:eulerToUnitVector(0,  self.sideStartEuler.Y+ side, 0)
+						local length=60*math.abs(curZ)/5
+						Camera.SidePos.Value=length*dir
+					end
+			end
+	end)
+	 
+end
+
+function CameraControl:SideTurn(t)
+	if (GunAction.Pose=="Grovel" or  GameControl.Climbing) and t~=0 then return end
+	
+	if MySettings.Custom.autosideaim==true then
+	       local curS=Character:GetAttribute("curSide")
+	       if (curS==1 or curS==2) and t==0 then
+		           GunAction:GunAim()
+		   elseif curS==0 and (t==1 or t==2) then
+		           GunAction:GunAim()
+		   end
+	end
+	Character:SetAttribute("curSide",t)
+    local side = 0
+    if not self.SideTurnDir then
+        self.SideTurnDir = 0
+    end
+
+	-- 配置补间参数
+	local tweenInfo = TweenInfo.new(
+		0.3, -- 动画时长
+		Enum.EasingStyle.Quad, -- 使用二次缓动
+		Enum.EasingDirection.Out, -- 缓动方向
+		0,
+		0, -- 循环次数
+		false -- 不反向
+	)
+	
+	-- 计算目标值
+    local EndEulerAdd = Vector3.new(0, 0, 0)
+	
+	if t==0 then
+	       self.SideTurnDir=0
+	else
+	      if t == 1 then
+				side = -90
+		  elseif t == 2 then
+				side = 90
+		  end
+		  -- 碰撞检测
+		  local UnitDir = Comm:eulerToUnitVector(0, Camera.Euler.Y + side, 0)
+		  local result = WorldService:RaycastClosest(Camera.Position, UnitDir, 150, false, {2})
+		  if result.isHit == true then
+				      if self.SideTurnDir==0 then
+					         return
+					  end
+		  else
+				 EndEulerAdd = Vector3.new(0, 0, -4 * side / 90)
+				 self.SideTurnDir = side
+		  end
+	end
+     self.sideStartEuler=Camera.Euler
+	-- 终止当前正在进行的补间
+    if self.SideTween then
+        self.SideTween:Cancel()
+    end
+     
+	self.SideTween =TweenService:Create(Camera.SideEuler, tweenInfo,{Value=EndEulerAdd})
+	 --启动补间动画
+	self.SideTween:Play()
+
+    -- 触发网络事件
+	local Sidei
+	if self.SideTurnDir==0 then
+	        Sidei=0
+	elseif self.SideTurnDir==-90 then
+	        Sidei=1
+	elseif self.SideTurnDir==90 then
+	        Sidei=2
+	end
+    RemoteEvent:FireServer({EventName = "PlayerSide", Sidei = Sidei})
+end

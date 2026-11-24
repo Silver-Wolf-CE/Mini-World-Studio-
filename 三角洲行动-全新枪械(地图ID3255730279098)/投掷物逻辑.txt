@@ -1,0 +1,223 @@
+local WorkSpace=game:GetService("WorkSpace")
+local MainStorage=game:GetService("MainStorage")
+local Comm=require(MainStorage.Commom)
+local GunControlModule=require(MainStorage.GunControlModule)
+local RemoteEvent=MainStorage:WaitForChild("RemoteEvent")
+local RunService = game:GetService("RunService")
+local WorldService=game:GetService("WorldService")
+local Players=game:GetService("Players")
+local Character=Players.LocalPlayer.Character
+CurrentMuzzleFlashData={}
+local MuzzleFlashTPSpool={}
+
+RemoteEvent.OnClientNotify:Connect(function(param)
+	   if GameState==2 then
+			   if param.EventName=="BulletHitFlash" then
+					 GunAction:BulletHitFlash(param.Position,param.Euler)
+			   elseif param.EventName=="BodyHitFlash" then
+					 GunAction:BodyHitFlash(param.HitPos,param.HitEuler)
+			   elseif param.EventName=="LightFlashing" then
+					 if param.Uin~=MyUin then
+						GunAction:TPSLightFlashing(param.Uin,param.maxTime,param.Attach)
+					 end
+			   end
+	   end
+end)
+
+function GunAction:MuzzleFlashCreate(Gunid,GunModel,rate,attachrate)
+	   local GunType=GunControl:GetGunType(Gunid)
+	   if not VFXPack.MuzzleFlash[GunType] then return end
+	   local OriginFlashNode=VFXPack.MuzzleFlash[GunType]
+	   
+	   local FlashLocalPosition
+	   local FlashLocalEuler
+	   local FlashParentNode
+	   local isMuzzle=false
+	   for i=1,10 do
+	       if GunModel.Point["Muzzle"..i] and
+		      GunModel.Point["Muzzle"..i].Visible==true then
+		          FlashParentNode=GunModel.Point["Muzzle"..i]
+				  FlashLocalEuler=Vector3.New(90,180,0)
+				  FlashLocalPosition=Vector3.New(0,-GunModel.Point["Muzzle"..i].Model.Size.Z,0)
+				  isMuzzle=true
+		          break
+		   end
+	   end
+	   
+	   if not FlashLocalPosition then
+	       if GunModel.Barrel1 then
+				   for i=1,10 do
+						  if GunModel["Barrel"..i] and
+							 GunModel["Barrel"..i].Visible==true and
+							 GunModel["Flash"..i] then
+								  FlashParentNode=GunModel
+								  FlashLocalPosition=GunModel["Flash"..i].LocalPosition
+								  FlashLocalEuler=Vector3.New(0,180,0)
+								  break
+						  end
+				   end
+		   else
+		           if GunModel.Flash1 then
+				          FlashParentNode=GunModel
+						  FlashLocalPosition=GunModel.Flash1.LocalPosition
+						  FlashLocalEuler=Vector3.New(0,180,0)
+				   end
+		   end
+	   end
+	   
+	   local Flash
+	   if FlashLocalPosition then
+	         if FlashParentNode.Flash then
+			       FlashParentNode.Flash:Destroy()
+			 end
+			 Flash=OriginFlashNode:Clone()
+			 Flash.Name="Flash"
+			 Flash:SetParent(FlashParentNode)
+			 if isMuzzle then
+			     Flash.LocalPosition=FlashLocalPosition+Vector3.New(0,-5,0)
+			 else
+			     Flash.LocalPosition=FlashLocalPosition+Vector3.New(0,0,-5)
+			 end
+			 Flash.LocalEuler=FlashLocalEuler
+			 ---修改大小
+			 Flash.Start3DSizeXConstant=Flash.Start3DSizeXConstant*rate*attachrate
+			 Flash.Start3DSizeYConstant=Flash.Start3DSizeYConstant*rate*attachrate
+			 Flash.Start3DSizeZConstant=Flash.Start3DSizeZConstant*rate*attachrate
+			 for _,a in ipairs(Flash.Children) do
+			          if a.ClassType=="EffectObject" then
+							  if a.Name=="smoke" then
+							         a.Start3DSizeXConstant=a.Start3DSizeXConstant*rate*attachrate
+								     a.Start3DSizeYConstant=a.Start3DSizeYConstant*rate*attachrate
+								     a.Start3DSizeZConstant=a.Start3DSizeZConstant*rate*attachrate
+									 a.StartLifeTimeConstant=a.StartLifeTimeConstant*attachrate
+							  elseif a.Name=="sparks" then
+							  else
+							         a.Start3DSizeXConstant=a.Start3DSizeXConstant*rate*attachrate
+								     a.Start3DSizeYConstant=a.Start3DSizeYConstant*rate*attachrate
+								     a.Start3DSizeZConstant=a.Start3DSizeZConstant*rate*attachrate
+							  end
+					  end
+			 end
+	   end
+	   return FlashParentNode,FlashLocalPosition,Flash
+end
+
+function GunAction:setFPSMuzzleFlash(GunHand)
+      CurrentMuzzleFlashData={}
+	  if GameControl.curWeapon>3 then return end
+	  local Gunid=MyWeapon[GameControl.curWeapon].Itemid
+	  local rate=0.5
+	  local attachrate=(100-GunControl:CalMuzzleFlash(MyWeapon[GameControl.curWeapon].attach))/100
+      CurrentMuzzleFlashData.Parent,CurrentMuzzleFlashData.LocalPosition,CurrentMuzzleFlashData.Node=self:MuzzleFlashCreate(Gunid,GunHand.Body.Children[1],rate,attachrate)
+end
+
+function GunAction:setTPSMuzzleFlash(uin)
+	  MuzzleFlashTPSpool[uin]={}
+	  local character=Players:GetPlayerByUserId(uin).Character   ---替换角色节点
+	  if character.Hand.Children[1] then
+		  local GunModel=character.Hand.Children[1]
+		  local Gunid=GunModel:GetAttribute("Gunid")
+		  local rate=1.5
+		  local attachrate=1
+		  if Gunid then
+			 MuzzleFlashTPSpool[uin]={}
+			 MuzzleFlashTPSpool[uin].Parent,MuzzleFlashTPSpool[uin].LocalPosition,MuzzleFlashTPSpool[uin].Node=self:MuzzleFlashCreate(Gunid,GunModel,rate,attachrate)
+		   end
+	   end
+end
+
+function GunAction:MuzzleFlashPlay()
+	  if next(CurrentMuzzleFlashData) then
+	         CurrentMuzzleFlashData.Node:ReStart ()
+			 for _,a in ipairs(CurrentMuzzleFlashData.Node.Children) do
+			      if a.ClassType=="EffectObject" then
+				        a:ReStart()
+				  end
+			 end
+	  end
+end
+
+function GunAction:TPSMuzzleFlashPlay(uin)
+	  if MuzzleFlashTPSpool[uin] and MuzzleFlashTPSpool[uin].Node and MuzzleFlashTPSpool[uin].Node.Parent then
+	         MuzzleFlashTPSpool[uin].Node:ReStart ()
+			 for _,a in ipairs(MuzzleFlashTPSpool[uin].Node.Children) do
+			      if a.ClassType=="EffectObject" then
+				        a:ReStart()
+				  end
+			 end
+	  else
+	         MuzzleFlashTPSpool[uin]={}
+	  end
+end
+
+function GunAction:BulletHitFlash(Position,Euler)
+	   if #WorkSpace.BulletHitPool.Children==0 then return end
+	   local BulletHitFlash=WorkSpace.BulletHitPool.Children[math.random(1,#WorkSpace.BulletHitPool.Children)]
+	   BulletHitFlash.Name="BulletHitFlash"
+	   BulletHitFlash:SetParent(WorkSpace)
+	   BulletHitFlash.Euler=Vector3.New(Euler.X+180,Euler.Y+180,Euler.Z+180)
+	   BulletHitFlash.Position=Position
+	   BulletHitFlash:ReStart ()
+	   for _,a in ipairs(BulletHitFlash.Children) do
+	          if a.ClassType=="EffectObject" then
+			         a:ReStart()
+			  end
+	   end
+	   wait(3)
+	   BulletHitFlash:SetParent(WorkSpace.BulletHitPool)
+end
+
+function GunAction:BodyHitFlash(Position,Euler)
+       if #WorkSpace.BodyHitPool.Children==0 then return end
+	   local BodyHitFlash=WorkSpace.BodyHitPool.Children[math.random(1,#WorkSpace.BodyHitPool.Children)]
+	   BodyHitFlash.Name="BulletHitFlash"
+	   BodyHitFlash:SetParent(WorkSpace)
+	   BodyHitFlash.Euler=Vector3.New(Euler.X+180,Euler.Y+180,Euler.Z+180)
+	   BodyHitFlash.Position=Position
+	   BodyHitFlash:ReStart ()
+	     for _,a in ipairs(BodyHitFlash.Children) do
+	          if a.ClassType=="EffectObject" then
+			         a:ReStart()
+			  end
+	   end
+	   wait(3)
+	   BodyHitFlash:SetParent(WorkSpace.BodyHitPool)
+end
+
+function GunAction:VFXInit()
+	   for i=1,50 do
+	         local BulletHitFlash=VFXPack.BulletHit:Clone()
+			 BulletHitFlash:SetParent(WorkSpace.BulletHitPool)
+			 local BodyHitFlash=VFXPack.BodyHit:Clone()
+			 BodyHitFlash:SetParent(WorkSpace.BodyHitPool)
+	   end
+	   WorkSpace.GrenadePool.ChildAdded:Connect(function(node)
+		    if GameState==2 then
+			      local id=node:GetAttribute("id")
+				  if id then
+				       if id==3051 then
+					       SoundControl:WorldSound("Grenade_Smoke",Vector3.New(0,0,0),node)
+				       elseif id==3053 then
+					       wait(2)
+						   SoundControl:WorldSound("Flash_Boom",Vector3.New(0,0,0),node)
+						   node.Flashlight.Light.Active=true
+						   node.Flashlight.Light.LightType=Enum.LightType.Point
+						   local pos=Character.CameraBind.bind.Position
+						   local dir=( pos-node.Position):Normalize()
+						   local distance=Comm:distance(pos,node.Position)
+						   local result=WorldService:RaycastClosest(node.Position,dir,distance,true,{2})
+						   if result.isHit==false then
+						        local vol=math.max(0,math.min(1,(1-distance/ItemData[id].damageRange)))*30
+								if next(MyHelmet) and MyHelmet.attach~=0 and ItemData[MyHelmet.attach].FlashDec then
+									   vol=vol*(1-ItemData[MyHelmet.attach].FlashDec/100)
+								end
+						        HaloControl:HaloUIShow(vol,1,5)
+						   end
+						   wait(0.1)
+						   node.Flashlight.Light.Active=false
+						 end
+				  end
+			end
+	   end)
+end
+GunAction:VFXInit()

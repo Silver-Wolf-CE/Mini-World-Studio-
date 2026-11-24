@@ -1,0 +1,48 @@
+local TweenService = game:GetService('TweenService')
+local MainStorage=game:GetService("MainStorage")
+local RemoteEvent=MainStorage:WaitForChild("RemoteEvent")
+local players=game:GetService("Players")
+local thisplayer=players.LocalPlayer
+local Character=thisplayer.Character
+function CameraControl:StateChange(StateName)
+	  if GameState~=2 then return end
+	  if GameControl.Climbing then GameControl:ClimbEnd() return end
+	  if GunAction.Pose and GunAction.Pose=="Jump" then return end
+	  
+	  GunAction.Pose=StateName
+	  local Camera=game:GetService("WorkSpace").CurrentCamera
+	  local stateoff={
+	     Stand=-18,
+		 Squat=-60,
+		 Grovel=-110,
+	  }
+	  local CurOff=Camera:GetAttribute("SidePositionAdd").Y
+	  local targetOff=stateoff[StateName]
+	  if self.StateTween then
+	       self.StateTween:Cancel ()
+	  end
+	  local TweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, 0, false)
+	  self.StateTween=TweenService:Create(Camera.StatePos,TweenInfo,{Value=Vector3.New(0,targetOff,0)})
+	  self.StateTween:Play()
+	  if StateName=="Grovel" then
+	       CameraControl:AddShake(1, 5, 5, 0.3, 0.01)
+		   GunAction:PlayAnim("Grovel")
+		   RemoteEvent:FireServer({EventName="PlayerGrovel"})
+		   GunAction:StopRun()
+		   Character:SetAttribute("curPose","Grovel")
+		   if Character:GetAttribute("curSide")~=0 then
+		          CameraControl:SideTurn(0)
+		   end
+	  else
+	       GunAction:PlayAnim("StopGrovel")
+	  end
+	  if StateName=="Squat" then
+	       RemoteEvent:FireServer({EventName="PlayerSquat"})
+		   GunAction:StopRun()
+		   Character:SetAttribute("curPose","Squat")
+	  end
+	  if StateName=="Stand" then
+	       RemoteEvent:FireServer({EventName="PlayerStand"})
+		   Character:SetAttribute("curPose","Stand")
+	  end
+end
